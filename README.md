@@ -85,8 +85,8 @@ Ensure Node.js 18+ is installed on your local machine.
 
 ### 1. Clone & Install
 ```bash
-git clone https://github.com/your-username/NeuroLearn-Ai.git
-cd NeuroLearn-Ai
+git clone https://github.com/sameerrswami/DevArise.git
+cd DevArise
 npm install
 ```
 
