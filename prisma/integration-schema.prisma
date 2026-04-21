@@ -1,0 +1,319 @@
+// Integration Schema - Extends Prisma schema with system experience models
+// This schema defines models for the unified platform experience
+
+model UserJourney {
+  id                String   @id @default(cuid())
+  userId            String   @unique
+  user              User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  // Goal Setting
+  primaryGoal       String   // "placement", "skill_development", "interview_prep", "contest"
+  targetRoles       String[] // ["SDE-1", "Frontend Engineer", etc.]
+  targetCompanies   String[] // ["Google", "Amazon", etc.]
+  placementDeadline DateTime?
+  preferredStartDate DateTime?
+
+  // Initial Assessment
+  currentLevel      String   @default("beginner") // beginner, intermediate, advanced
+  yearsOfExperience Int      @default(0)
+  programmingLanguages String[]
+  areasOfInterest   String[]
+  areasOfWeakness   String[]
+
+  // Journey Progress
+  currentStage      String   @default("onboarding") // onboarding, learning, practice, interview_prep, job_search
+  stageProgress     Float    @default(0) // 0-1 progress in current stage
+  overallProgress   Float    @default(0) // 0-1 overall journey progress
+  estimatedWeeksLeft Int?    // Estimated time to placement
+
+  // Adaptive Roadmap
+  roadmapId         String?
+  roadmap           Roadmap? @relation(fields: [roadmapId], references: [id])
+  lastRoadmapUpdate DateTime?
+
+  // Readiness Score
+  placementReadiness Float @default(0) // 0-100 score
+  technicalScore     Float @default(0) // Coding ability
+  interviewScore     Float @default(0) // Interview performance
+  resumeScore        Float @default(0) // Resume quality
+  overallScore       Float @default(0) // Composite score
+
+  // Activity Timeline
+  createdAt         DateTime @default(now())
+  updatedAt         DateTime @updatedAt
+  lastActivityAt    DateTime?
+
+  journeyMilestones JourneyMilestone[]
+  stageTransitions  StageTransition[]
+
+  @@index([userId])
+  @@index([currentStage])
+}
+
+model Roadmap {
+  id                String   @id @default(cuid())
+  userId            String
+  journeyId         String
+  journey           UserJourney @relation(fields: [journeyId], references: [id], onDelete: Cascade)
+
+  // Roadmap Structure
+  title             String
+  description       String?  @db.Text
+  totalWeeks        Int      @default(12)
+  currentWeek       Int      @default(1)
+  difficulty        String   // beginner, intermediate, advanced
+
+  // Phases
+  phases            RoadmapPhase[]
+
+  // Adaptation
+  lastAdapted       DateTime @default(now())
+  adaptationCount   Int      @default(0)
+  nextAdaptationAt  DateTime?
+
+  // Status
+  isActive          Boolean  @default(true)
+  completedAt       DateTime?
+
+  createdAt         DateTime @default(now())
+  updatedAt         DateTime @updatedAt
+
+  @@index([userId])
+  @@index([isActive])
+}
+
+model RoadmapPhase {
+  id                String   @id @default(cuid())
+  roadmapId         String
+  roadmap           Roadmap  @relation(fields: [roadmapId], references: [id], onDelete: Cascade)
+
+  // Phase Details
+  phaseNumber       Int      // 1-8 typically
+  title             String   // "Foundation", "DSA Deep Dive", etc.
+  description       String?  @db.Text
+  duration          Int      // weeks
+  order             Int
+
+  // Content
+  learningModules   String[] // Module IDs
+  codingProblems    String[] // Problem IDs
+  mockInterviews    String[] // Interview IDs
+  quizzes           String[] // Quiz IDs
+  projects          String[] // Project IDs
+
+  // Goals for Phase
+  expectedCompletionDate DateTime?
+  targetProblemsSolved Int?
+  targetAccuracy     Float?
+  targetInterviewScore Float?
+
+  // Milestones
+  milestones        PhaseMilestone[]
+
+  // Progress
+  completedAt       DateTime?
+  progress          Float    @default(0) // 0-1
+
+  createdAt         DateTime @default(now())
+  updatedAt         DateTime @updatedAt
+
+  @@index([roadmapId])
+  @@index([phaseNumber])
+}
+
+model PhaseMilestone {
+  id                String   @id @default(cuid())
+  phaseId           String
+  phase             RoadmapPhase @relation(fields: [phaseId], references: [id], onDelete: Cascade)
+
+  title             String
+  description       String?
+  type              String   // "problem_count", "topic_mastery", "interview_score", "time_investment"
+  targetValue       Float
+  currentValue      Float    @default(0)
+  weight            Float    @default(1.0) // Importance in phase completion
+
+  isCompleted       Boolean  @default(false)
+  completedAt       DateTime?
+
+  @@index([phaseId])
+}
+
+model JourneyMilestone {
+  id                String   @id @default(cuid())
+  journeyId         String
+  journey           UserJourney @relation(fields: [journeyId], references: [id], onDelete: Cascade)
+
+  title             String
+  description       String?
+  type              String   // "50_problems_solved", "interview_passed", etc.
+  achievedAt        DateTime @default(now())
+  reward            String?  // Achievement badge or points
+
+  @@index([journeyId])
+  @@index([achievedAt])
+}
+
+model StageTransition {
+  id                String   @id @default(cuid())
+  journeyId         String
+  journey           UserJourney @relation(fields: [journeyId], references: [id], onDelete: Cascade)
+
+  fromStage         String
+  toStage           String
+  transitionReason  String   // "progress", "manual", "adaptation"
+  completionMetrics Json     // Metrics at transition time
+
+  transitionedAt    DateTime @default(now())
+
+  @@index([journeyId])
+  @@index([transitionedAt])
+}
+
+// Cross-Feature Events
+model SystemEvent {
+  id                String   @id @default(cuid())
+  userId            String
+  user              User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  // Event Details
+  eventType         String   // "problem_completed", "interview_finished", "module_started", etc.
+  sourceFeature     String   // "problems", "interviews", "learning", "resume", "jobs"
+  targetFeatures    String[] // Affected features
+
+  // Event Data
+  eventData         Json     // Feature-specific data
+  impact            String?  // Predicted impact on overall journey
+  recommendations   String[] // Auto-generated next steps
+
+  // Processing
+  processed         Boolean  @default(false)
+  processedAt       DateTime?
+  propagatedTo      String[] // Features that were updated
+
+  timestamp         DateTime @default(now())
+
+  @@index([userId])
+  @@index([eventType])
+  @@index([processed])
+  @@index([timestamp])
+}
+
+// Unified Experience Analytics
+model JourneyMetrics {
+  id                String   @id @default(cuid())
+  userId            String   @unique
+  user              User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  // Overall Metrics
+  totalHoursSpent   Float    @default(0)
+  averageDailyTime  Float    @default(0)
+  totalSessions     Int      @default(0)
+  currentStreak     Int      @default(0)
+  longestStreak     Int      @default(0)
+
+  // Feature Metrics
+  totalProblemsSolved Int    @default(0)
+  problemAccuracy   Float    @default(0)
+  interviewsAttempted Int    @default(0)
+  interviewSuccessRate Float @default(0)
+  modulesCompleted  Int      @default(0)
+  certificationsEarned Int   @default(0)
+
+  // Readiness Metrics
+  technicalReadiness Float  @default(0) // 0-100
+  interviewReadiness Float  @default(0) // 0-100
+  resumeReadiness   Float   @default(0) // 0-100
+  jobSearchReadiness Float  @default(0) // 0-100
+  placementReadiness Float  @default(0) // 0-100 composite
+
+  // Comparison Metrics
+  userPercentile    Float?  // Where user ranks vs peers
+  expectedPlacementDate DateTime?
+
+  // Trends
+  weeklyProgressTrend Json   // Last 12 weeks of progress
+  strengthTrend     Json    // How strengths evolve
+  weaknessTrend     Json    // How weaknesses improve
+
+  lastUpdated       DateTime @updatedAt
+  createdAt         DateTime @default(now())
+
+  @@index([userId])
+}
+
+// Real-World Simulation Config
+model SimulationConfig {
+  id                String   @id @default(cuid())
+  userId            String   @unique
+  user              User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  // Difficulty Consistency
+  problemDifficultyMap Json   // Map user level to problem difficulty
+  interviewDifficultyMap Json // Map user level to interview difficulty
+  contestDifficultyMap Json   // Map user level to contest difficulty
+
+  // Feedback Configuration
+  feedbackStyle     String   @default("industry") // "industry", "educational", "encouraging"
+  feedbackDetailLevel String @default("comprehensive") // "brief", "standard", "comprehensive"
+  feedbackFocus     String[] // ["performance", "learning", "improvement"]
+
+  // Simulation Parameters
+  interviewQuestionCurve String @default("realistic") // How questions get harder
+  problemProgressionCurve String @default("adaptive") // How problems progress
+  contestDifficultyMultiplier Float @default(1.0)
+
+  // Real-World Alignment
+  companyDifficultyMap Json   // Difficulty levels by company
+  roleRequirementMap Json     // Requirements mapped to role
+  seasonalAdjustments Json    // Seasonal hiring patterns
+
+  createdAt         DateTime @default(now())
+  updatedAt         DateTime @updatedAt
+
+  @@index([userId])
+}
+
+// Workflow State
+model UserWorkflow {
+  id                String   @id @default(cuid())
+  userId            String   @unique
+  user              User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  // Current Workflow State
+  currentWorkflow   String   // "learning", "practice", "interview_prep", "job_search", "none"
+  currentTask       String?  // Specific task ID being worked on
+  estimatedTimeRemaining Int? // Minutes
+
+  // Session State
+  sessionId         String?  // Current session ID
+  sessionStartTime  DateTime?
+  lastInteractionAt DateTime @default(now())
+  sessionDuration   Int      @default(0) // Total minutes in current session
+
+  // Contextual Data
+  contextData       Json     // Current context (topic, difficulty, etc.)
+  interruptionPoints Json    // Places where user left off
+  resumeCapabilities Json    // Can resume from saved points? For which features?
+
+  // Recommendations for Next Action
+  suggestedNextAction String?
+  suggestedContent  String[] // IDs of suggested content
+  estimatedValue    String?  // Why this action is recommended
+
+  updatedAt         DateTime @updatedAt
+  createdAt         DateTime @default(now())
+
+  @@index([userId])
+}
+
+// Update User model to reference journey
+model User {
+  // ... existing fields ...
+  
+  journey           UserJourney?
+  journeyMetrics    JourneyMetrics?
+  systemEvents      SystemEvent[]
+  simulationConfig  SimulationConfig?
+  workflow          UserWorkflow?
+}

@@ -1,0 +1,33 @@
+services:
+  - type: web
+    name: neurolearn-web
+    env: node
+    plan: starter
+    repo: "<GITHUB_REPOSITORY_URL>" # e.g. https://github.com/<username>/<repo>
+    branch: main
+    buildCommand: npm install && npm run build
+    startCommand: npm run start
+    envVars:
+      - key: DATABASE_URL
+        value: ""
+      - key: NEXTAUTH_URL
+        value: ""
+      - key: NEXTAUTH_SECRET
+        value: ""
+      - key: GEMINI_API_KEY
+        value: ""
+      - key: YOUTUBE_API_KEYS
+        value: ""
+      - key: RAZORPAY_KEY_ID
+        value: ""
+      - key: RAZORPAY_KEY_SECRET
+        value: ""
+      - key: RAZORPAY_WEBHOOK_SECRET
+        value: ""
+      - key: NEXT_PUBLIC_APP_URL
+        value: ""
+      - key: NODE_ENV
+        value: production
+    disk: 1024
+    instances: 1
+    healthCheckPath: /api/health

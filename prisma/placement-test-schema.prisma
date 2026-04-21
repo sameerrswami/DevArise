@@ -1,0 +1,476 @@
+// ─── PLACEMENT TEST SYSTEM ─────────────────────────────────────────────────────
+
+model PlacementTest {
+  id                String   @id @default(cuid())
+  
+  // Basic Info
+  title             String
+  description       String   @db.Text
+  company           String?  // Company name (optional)
+  difficulty        String   @default("medium") // easy, medium, hard
+  
+  // Test Configuration
+  totalDuration     Int      // Total time in seconds
+  rounds            PlacementTestRound[]
+  
+  // Passing Criteria
+  passingPercentage Float    @default(70.0)
+  roundPassThresholds Json   // { "aptitude": 60, "mcq": 65, "coding": 50, "interview": 70 }
+  
+  // Test Status & Availability
+  isActive          Boolean  @default(true)
+  isPublished       Boolean  @default(true)
+  createdAt         DateTime @default(now())
+  updatedAt         DateTime @updatedAt
+  
+  // Analytics
+  totalAttempts      Int      @default(0)
+  totalCleared       Int      @default(0)
+  averageScore       Float    @default(0.0)
+  
+  // Relations
+  testimonials      PlacementTestAttempt[]
+  
+  @@index([isActive])
+  @@index([createdAt])
+}
+
+model PlacementTestRound {
+  id                String   @id @default(cuid())
+  testId            String
+  test              PlacementTest @relation(fields: [testId], references: [id], onDelete: Cascade)
+  
+  // Round Configuration
+  type              String   // "aptitude", "mcq", "coding", "interview"
+  order             Int      // Order of rounds (1, 2, 3, 4)
+  title             String   // e.g., "Aptitude Test", "Technical MCQ"
+  description       String?  @db.Text
+  
+  // Timing
+  duration          Int      // Time limit in seconds
+  instructions      String   @db.Text
+  
+  // Pass Criteria
+  passingPercentage Float    @default(60.0)
+  minimumQuestions  Int?     // Min questions to answer (for aptitude/mcq)
+  
+  // Round Content Configuration
+  questionsCount    Int      @default(10)
+  randomize         Boolean  @default(true) // Randomize question order
+  showCorrectAnswer Boolean  @default(false) // Show answer during test
+  allowNegativeMarking Boolean @default(true)
+  negativeMarks     Float    @default(0.25)
+  
+  // Relations - content loaded based on type
+  aptitudeQuestions AptitudeQuestion[]
+  mcqQuestions      TechnicalMCQQuestion[]
+  codingProblems    PlacementTestCodingProblem[]
+  interviewSetup    InterviewRoundSetup?
+  
+  // Round Results
+  roundResults      RoundResult[]
+  
+  @@unique([testId, order])
+  @@index([testId])
+  @@index([type])
+}
+
+// ─── APTITUDE SECTION ──────────────────────────────────────────────────────────
+
+model AptitudeQuestion {
+  id                String   @id @default(cuid())
+  roundId           String
+  round             PlacementTestRound @relation(fields: [roundId], references: [id], onDelete: Cascade)
+  
+  // Question Details
+  category          String   // "logical_reasoning", "quantitative", "verbal"
+  difficulty        String   @default("medium")
+  
+  // Content
+  question          String   @db.Text
+  options           String[] // Array of options
+  correctAnswer     Int      // Index of correct answer (0-3, typically)
+  explanation       String   @db.Text // Why this is correct
+  
+  // Metadata
+  marks             Int      @default(1)
+  order             Int      @default(0)
+  
+  // Analytics
+  correctAttempts   Int      @default(0)
+  wrongAttempts     Int      @default(0)
+  skippedAttempts   Int      @default(0)
+  averageTime       Int?     // Average time taken in seconds
+  
+  createdAt         DateTime @default(now())
+  
+  // Relations
+  answers           AptitudeAnswer[]
+  
+  @@index([roundId])
+  @@index([category])
+  @@index([difficulty])
+}
+
+model AptitudeAnswer {
+  id                String   @id @default(cuid())
+  questionId        String
+  question          AptitudeQuestion @relation(fields: [questionId], references: [id], onDelete: Cascade)
+  attemptId         String
+  attempt           PlacementTestAttempt @relation(fields: [attemptId], references: [id], onDelete: Cascade)
+  
+  // Answer Content
+  selectedAnswer    Int?     // Index of selected answer (-1 if skipped)
+  isCorrect         Boolean  @default(false)
+  timeTaken         Int      // Seconds taken to answer
+  
+  createdAt         DateTime @default(now())
+  
+  @@unique([questionId, attemptId])
+  @@index([attemptId])
+}
+
+// ─── TECHNICAL MCQ SECTION ────────────────────────────────────────────────────
+
+model TechnicalMCQQuestion {
+  id                String   @id @default(cuid())
+  roundId           String
+  round             PlacementTestRound @relation(fields: [roundId], references: [id], onDelete: Cascade)
+  
+  // Question Details
+  subject           String   // "dbms", "os", "networks", "algorithms", "oops"
+  difficulty        String   @default("medium")
+  
+  // Content
+  question          String   @db.Text
+  codeSnippet       String?  @db.Text // Optional code in question
+  options           String[] // Array of options
+  correctAnswer     Int      // Index of correct answer
+  explanation       String   @db.Text
+  
+  // Metadata
+  marks             Int      @default(1)
+  order             Int      @default(0)
+  tags              String[]
+  
+  // Analytics
+  correctAttempts   Int      @default(0)
+  wrongAttempts     Int      @default(0)
+  skippedAttempts   Int      @default(0)
+  averageTime       Int?
+  
+  createdAt         DateTime @default(now())
+  
+  // Relations
+  answers           TechnicalMCQAnswer[]
+  
+  @@index([roundId])
+  @@index([subject])
+  @@index([difficulty])
+}
+
+model TechnicalMCQAnswer {
+  id                String   @id @default(cuid())
+  questionId        String
+  question          TechnicalMCQQuestion @relation(fields: [questionId], references: [id], onDelete: Cascade)
+  attemptId         String
+  attempt           PlacementTestAttempt @relation(fields: [attemptId], references: [id], onDelete: Cascade)
+  
+  // Answer Content
+  selectedAnswer    Int?     // Index of selected answer
+  isCorrect         Boolean  @default(false)
+  timeTaken         Int      // Seconds
+  
+  createdAt         DateTime @default(now())
+  
+  @@unique([questionId, attemptId])
+  @@index([attemptId])
+}
+
+// ─── CODING SECTION ───────────────────────────────────────────────────────────
+
+model PlacementTestCodingProblem {
+  id                String   @id @default(cuid())
+  roundId           String
+  round             PlacementTestRound @relation(fields: [roundId], references: [id], onDelete: Cascade)
+  problemId         String
+  problem           Problem  @relation(fields: [problemId], references: [id], onDelete: Cascade)
+  
+  // Problem Configuration for this test
+  order             Int      @default(0)
+  marks             Int      @default(10)
+  timeLimit         Int      @default(900) // seconds per problem
+  
+  // Analytics
+  correctSubmissions Int     @default(0)
+  wrongSubmissions   Int     @default(0)
+  
+
+  partialSubmissions Int     @default(0)
+  timeoutSubmissions Int     @default(0)
+  averageTime        Int?
+  
+  createdAt         DateTime @default(now())
+  
+  // Relations
+  submissions       PlacementCodingSubmission[]
+  
+  @@unique([roundId, problemId])
+  @@index([roundId])
+  @@index([problemId])
+}
+
+model PlacementCodingSubmission {
+  id                String   @id @default(cuid())
+  codingProblemId   String
+  codingProblem     PlacementTestCodingProblem @relation(fields: [codingProblemId], references: [id], onDelete: Cascade)
+  attemptId         String
+  attempt           PlacementTestAttempt @relation(fields: [attemptId], references: [id], onDelete: Cascade)
+  
+  // Code Details
+  code              String   @db.Text
+  language          String
+  
+  // Evaluation
+  status            String   // "accepted", "wrong_answer", "time_limit_exceeded", "runtime_error", "compilation_error"
+  score             Int      @default(0)
+  passedTestCases   Int      @default(0)
+  totalTestCases    Int      @default(0)
+  accuracy          Float    @default(0.0)
+  
+  // Feedback
+  errorMessage      String?  @db.Text
+  executionTime     Int?     // milliseconds
+  executionMemory   Int?     // kilobytes
+  
+  timeTaken         Int      // Seconds from start
+  submittedAt       DateTime @default(now())
+  
+  @@index([codingProblemId])
+  @@index([attemptId])
+  @@index([status])
+}
+
+// ─── INTERVIEW SECTION ─────────────────────────────────────────────────────────
+
+model InterviewRoundSetup {
+  id                String   @id @default(cuid())
+  roundId           String   @unique
+  round             PlacementTestRound @relation(fields: [roundId], references: [id], onDelete: Cascade)
+  
+  // Interview Configuration
+  jobPosition       String   // e.g., "Software Engineer", "Data Scientist"
+  jobDescription    String   @db.Text
+  experience        String   // e.g., "0-2 years"
+  
+  // Interview Parameters
+  numberOfQuestions Int      @default(5)
+  difficulty        String   @default("medium")
+  
+  // Questions to ask (AI will select from these topics)
+  interviewTopics   String[] // Topics to focus on
+  
+  createdAt         DateTime @default(now())
+  
+  @@index([roundId])
+}
+
+// ─── TEST ATTEMPTS & RESULTS ──────────────────────────────────────────────────
+
+model PlacementTestAttempt {
+  id                String   @id @default(cuid())
+  userId            String
+  user              User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  testId            String
+  test              PlacementTest @relation(fields: [testId], references: [id], onDelete: Cascade)
+  
+  // Attempt Status
+  status            String   @default("in-progress") // in-progress, completed, paused, abandoned
+  currentRound      Int      @default(1) // Current round number
+  
+  // Attempt Timeline
+  startedAt         DateTime  @default(now())
+  pausedAt          DateTime?
+  completedAt       DateTime?
+  
+  // Performance
+  totalScore        Int      @default(0)
+  totalMarks        Int      @default(0)
+  percentage        Float    @default(0.0)
+  isPassed          Boolean  @default(false)
+  
+  // Round-wise Results
+  roundResults      RoundResult[]
+  
+  // Individual Answers
+  aptitudeAnswers   AptitudeAnswer[]
+  mcqAnswers        TechnicalMCQAnswer[]
+  codingSubmissions PlacementCodingSubmission[]
+  
+  // Analysis
+  analysis          PlacementTestAnalysis?
+  
+  @@unique([userId, testId])
+  @@index([userId])
+  @@index([testId])
+  @@index([status])
+  @@index([completedAt])
+}
+
+model RoundResult {
+  id                String   @id @default(cuid())
+  attemptId         String
+  attempt           PlacementTestAttempt @relation(fields: [attemptId], references: [id], onDelete: Cascade)
+  roundId           String
+  round             PlacementTestRound @relation(fields: [roundId], references: [id], onDelete: Cascade)
+  
+  // Round Performance
+  roundNumber       Int
+  roundType         String   // aptitude, mcq, coding, interview
+  
+  // Scoring
+  score             Int      @default(0)
+  maxScore          Int      @default(0)
+  percentage        Float    @default(0.0)
+  isPassed          Boolean  @default(false)
+  
+  // Detailed Breakdown
+  correctAnswers    Int      @default(0)
+  wrongAnswers      Int      @default(0)
+  skippedAnswers    Int      @default(0)
+  totalQuestions    Int      @default(0)
+  
+  // Time Tracking
+  timeTaken         Int?     // Total time in seconds
+  timeRemaining     Int?     // Time left when submitted
+  
+  // Feedback
+  strengths         String[] // What user did well
+  weaknesses        String[] // What user struggled with
+  recommendations   String[] // Improvement suggestions
+  
+  createdAt         DateTime @default(now())
+  
+  @@unique([attemptId, roundId])
+  @@index([attemptId])
+  @@index([roundId])
+}
+
+// ─── PERFORMANCE ANALYSIS ──────────────────────────────────────────────────────
+
+model PlacementTestAnalysis {
+  id                String   @id @default(cuid())
+  attemptId         String   @unique
+  attempt           PlacementTestAttempt @relation(fields: [attemptId], references: [id], onDelete: Cascade)
+  
+  // Overall Performance
+  overallScore      Float
+  overallPercentage Float
+  finalResult       String   // "cleared", "failed"
+  
+  // Round-wise Analysis
+  roundAnalysis     Json     // {
+                              //   "aptitude": { score, percentage, status, errors },
+                              //   "mcq": { score, percentage, status, errors },
+                              //   "coding": { score, percentage, status, errors },
+                              //   "interview": { score, percentage, status, errors }
+                              // }
+  
+  // Where User Failed (if applicable)
+  failureReason     String?  // Primary reason for failure
+  failureRounds     String[] // Rounds where user failed
+  
+  // Strengths & Weaknesses
+  topicStrengths    Json     // { "topic": score }
+  topicWeaknesses   Json     // { "topic": score, issues: [...] }
+  
+  // Specific Issue Analysis
+  commonMistakes    String[] // Patterns in wrong answers
+  timeManagementIssues Json  // When user struggled with time
+  
+  // Improvement Recommendations
+  recommendations   Json     // {
+                              //   "focus_areas": [...],
+                              //   "practice_suggestions": [...],
+                              //   "estimated_improvement": "X% in Y weeks"
+                              // }
+  
+  // Detailed Breakdown
+  accuracy          Float    // Correct answers / Total questions
+  speed             Float    // Questions per minute or similar
+  consistency       Float    // How consistent was performance (0-1)
+  
+  createdAt         DateTime @default(now())
+  
+  @@index([attemptId])
+}
+
+// ─── WEAK AREA DETECTION ──────────────────────────────────────────────────────
+
+model UserWeakArea {
+  id                String   @id @default(cuid())
+  userId            String
+  user              User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  
+  // Area Identification
+  category          String   // "aptitude_reasoning", "dbms", "os", "data_structures", etc.
+  topic             String   // Specific topic
+  subTopic          String?  // More specific area
+  
+  // Difficulty & Severity
+  difficulty        String   @default("medium")
+  severity          String   // "critical", "high", "medium", "low"
+  confidence        Float    // 0-1, ML model confidence
+  
+  // Evidence
+  incorrectCount    Int      @default(0)
+  correctCount      Int      @default(0)
+  accuracy          Float    @default(0.0)
+  
+  // Pattern Analysis
+  commonErrors      String[] // Types of errors made
+  timeSpentExcessive Boolean  @default(false)
+  frequentSkips     Boolean  @default(false)
+  
+  // Timestamps
+  firstIdentified   DateTime  @default(now())
+  lastOccurrence    DateTime  @default(now())
+  
+  // Recommendations
+  suggestedTopics   String[] // Topics to study
+  recommendedProblems String[] // Problem IDs to solve
+  estimatedTimeToMastery Int? // Estimated hours
+  
+  @@unique([userId, category, topic, subTopic])
+  @@index([userId])
+  @@index([category])
+  @@index([severity])
+}
+
+model UserStrengthArea {
+  id                String   @id @default(cuid())
+  userId            String
+  user              User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  
+  // Area Identification
+  category          String
+  topic             String
+  
+  // Proficiency
+  proficiency       String   // "beginner", "intermediate", "advanced", "expert"
+  accuracy          Float    @default(0.0)
+  averageSpeed      Int?     // Seconds per question
+  
+  // Evidence
+  correctCount      Int      @default(0)
+  totalAttempts     Int      @default(0)
+  
+  // Timestamps
+  firstMastered     DateTime
+  lastPractice      DateTime @default(now())
+  
+  @@unique([userId, category, topic])
+  @@index([userId])
+  @@index([category])
+  @@index([proficiency])
+}

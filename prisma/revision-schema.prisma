@@ -1,0 +1,507 @@
+// ─── Smart Revision & Productivity System Schema ──────────────────────────────────
+
+// ─── Spaced Repetition System Models ──────────────────────────────────────────────
+
+model RevisionItem {
+  id              String   @id @default(cuid())
+  userId          String
+  user            User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  
+  // Content reference - can be a problem, topic, or concept
+  contentType     String   // problem, topic, concept, quiz, interview_question
+  contentId       String   // ID of the content being tracked
+  contentTitle    String
+  contentMetadata Json?    // Additional metadata about the content
+  
+  // Topic/Category tracking
+  topic           String
+  subtopic        String?
+  tags            String[]
+  
+  // Spaced Repetition Algorithm Fields (SM-2 based)
+  easeFactor      Float    @default(2.5)  // Easiness factor (EF) - starts at 2.5
+  interval        Int      @default(0)    // Current interval in days
+  repetitions     Int      @default(0)    // Number of successful repetitions
+  nextReviewDate  DateTime @db.Date      // When this item should be reviewed
+  lastReviewDate  DateTime? @db.Date     // When this item was last reviewed
+  firstLearnedDate DateTime @db.Date     // When this item was first learned
+  
+  // Performance tracking
+  difficultyLevel Float    @default(0.5) // 0.0 (easy) to 1.0 (hard)
+  successRate     Float    @default(0.0) // 0.0 to 1.0
+  totalAttempts   Int      @default(0)
+  correctAttempts Int      @default(0)
+  
+  // Status
+  status          String   @default("new") // new, learning, reviewing, mastered, dormant
+  priority        Float    @default(0.0)  // Calculated priority score
+  
+  // Flags
+  isBookmarked    Boolean  @default(false)
+  isArchived      Boolean  @default(false)
+  
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+  
+  reviewLogs      ReviewLog[]
+  revisionSessions RevisionSessionItem[]
+  
+  @@unique([userId, contentType, contentId])
+  @@index([userId])
+  @@index([nextReviewDate])
+  @@index([status])
+  @@index([priority])
+  @@index([topic])
+}
+
+model ReviewLog {
+  id              String   @id @default(cuid())
+  revisionItemId  String
+  revisionItem    RevisionItem @relation(fields: [revisionItemId], references: [id], onDelete: Cascade)
+  
+  // Review session context
+  sessionId       String?
+  session         RevisionSession? @relation(fields: [sessionId], references: [id], onDelete: SetNull)
+  
+  // Performance rating (1-5 scale)
+  // 1 = complete blackout, 2 = incorrect, 3 = hard, 4 = easy, 5 = perfect
+  rating          Int      
+  
+  // Time taken to answer (in milliseconds)
+  timeTaken       Int?
+  
+  // Whether the answer was correct
+  wasCorrect      Boolean
+  
+  // User's self-assessment of confidence (1-5)
+  confidenceLevel Int?
+  
+  // Notes from this review
+  notes           String?  @db.Text
+  
+  // Algorithm state before and after
+  easeFactorBefore Float
+  easeFactorAfter  Float
+  intervalBefore   Int
+  intervalAfter    Int
+  
+  createdAt       DateTime @default(now())
+  
+  @@index([revisionItemId])
+  @@index([sessionId])
+  @@index([createdAt])
+}
+
+model RevisionSession {
+  id              String   @id @default(cuid())
+  userId          String
+  user            User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  
+  // Session type
+  sessionType     String   // daily, custom, weak_topics, bookmarked, interview_prep
+  
+  // Session metadata
+  title           String?
+  description     String?
+  plannedDuration Int?     // Planned duration in minutes
+  
+  // Session results
+  actualDuration  Int?     // Actual duration in milliseconds
+  itemsPlanned    Int      @default(0)
+  itemsCompleted  Int      @default(0)
+  itemsCorrect    Int      @default(0)
+  
+  // Performance metrics
+  accuracy        Float    @default(0.0)
+  averageTimeTaken Int?    // Average time per item in milliseconds
+  averageConfidence Float? // Average confidence level
+  
+  startedAt       DateTime @default(now())
+  completedAt     DateTime?
+  
+  sessionItems    RevisionSessionItem[]
+  
+  @@index([userId])
+  @@index([sessionType])
+  @@index([startedAt])
+}
+
+model RevisionSessionItem {
+  id              String   @id @default(cuid())
+  sessionId       String
+  session         RevisionSession @relation(fields: [sessionId], references: [id], onDelete: Cascade)
+  
+  revisionItemId  String
+  revisionItem    RevisionItem @relation(fields: [revisionItemId], references: [id], onDelete: Cascade)
+  
+  // Order in session
+  order           Int      @default(0)
+  
+  // Result
+  wasCompleted    Boolean  @default(false)
+  wasCorrect      Boolean  @default(false)
+  timeTaken       Int?     // Time taken in milliseconds
+  rating          Int?     // 1-5 rating
+  confidenceLevel Int?     // 1-5 confidence
+  
+  notes           String?  @db.Text
+  
+  completedAt     DateTime?
+  createdAt       DateTime @default(now())
+  
+  @@unique([sessionId, revisionItemId])
+  @@index([sessionId])
+  @@index([revisionItemId])
+}
+
+// ─── Daily Practice System Models ────────────────────────────────────────────────
+
+model DailyTask {
+  id              String   @id @default(cuid())
+  date            DateTime @db.Date
+  
+  // Task type
+  taskType        String   // coding, mcq, interview
+  
+  // Task details
+  title           String
+  description     String?  @db.Text
+  
+  // Content reference
+  contentType     String?  // problem, quiz, question
+  contentId       String?
+  
+  // Difficulty and topic
+  difficulty      String   @default("medium") // easy, medium, hard
+  topic           String?
+  tags            String[]
+  
+  // Points reward
+  pointsValue     Int      @default(10)
+  
+  // Metadata
+  metadata        Json?
+  
+  createdAt       DateTime @default(now())
+  
+  userTasks       UserDailyTask[]
+  
+  @@unique([date, taskType, contentId])
+  @@index([date])
+  @@index([taskType])
+  @@index([topic])
+}
+
+model UserDailyTask {
+  id              String   @id @default(cuid())
+  userId          String
+  user            User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  
+  dailyTaskId     String
+  dailyTask       DailyTask @relation(fields: [dailyTaskId], references: [id], onDelete: Cascade)
+  
+  // Status
+  status          String   @default("pending") // pending, in_progress, completed, skipped
+  
+  // Completion details
+  completedAt     DateTime?
+  timeTaken       Int?     // Time taken in milliseconds
+  
+  // Performance
+  wasCorrect      Boolean?
+  accuracy        Float?   // For MCQs
+  codeSubmitted   String?  @db.Text // For coding tasks
+  
+  // Rating and feedback
+  selfRating      Int?     // User's self-assessment (1-5)
+  notes           String?  @db.Text
+  
+  // Points earned
+  pointsEarned    Int      @default(0)
+  
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+  
+  @@unique([userId, dailyTaskId])
+  @@index([userId])
+  @@index([status])
+  @@index([completedAt])
+}
+
+// ─── Focus Timer (Pomodoro) Models ───────────────────────────────────────────────
+
+model FocusSession {
+  id              String   @id @default(cuid())
+  userId          String
+  user            User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  
+  // Session type
+  sessionType     String   @default("pomodoro") // pomodoro, short_break, long_break, custom
+  
+  // Duration settings (in minutes)
+  plannedDuration Int      @default(25)
+  actualDuration  Int?     // Actual duration in minutes
+  
+  // Session status
+  status          String   @default("planned") // planned, in_progress, completed, interrupted
+  
+  // What the user worked on
+  taskDescription String?  @db.Text
+  relatedTopic    String?
+  
+  // Distractions tracking
+  interruptions   Int      @default(0)
+  distractionNotes String? @db.Text
+  
+  // Performance
+  focusLevel      Int?     // User-rated focus level (1-5)
+  
+  startedAt       DateTime?
+  completedAt     DateTime?
+  createdAt       DateTime @default(now())
+  
+  @@index([userId])
+  @@index([status])
+  @@index([startedAt])
+}
+
+// ─── Bookmarks & Notes Models ────────────────────────────────────────────────────
+
+model Bookmark {
+  id              String   @id @default(cuid())
+  userId          String
+  user            User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  
+  // Content reference
+  contentType     String   // problem, topic, concept, quiz, interview_question, note
+  contentId       String
+  contentTitle    String
+  contentMetadata Json?
+  
+  // Organization
+  collectionId    String?
+  collection      BookmarkCollection? @relation(fields: [collectionId], references: [id], onDelete: SetNull)
+  
+  // Tags for organization
+  tags            String[]
+  
+  // Priority
+  priority        String   @default("normal") // low, normal, high, urgent
+  
+  // Notes about this bookmark
+  notes           String?  @db.Text
+  
+  // Revision tracking
+  lastReviewedAt  DateTime?
+  reviewCount     Int      @default(0)
+  
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+  
+  @@unique([userId, contentType, contentId])
+  @@index([userId])
+  @@index([contentType])
+  @@index([collectionId])
+  @@index([priority])
+  @@index([createdAt])
+}
+
+model BookmarkCollection {
+  id              String   @id @default(cuid())
+  userId          String
+  user            User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  
+  // Collection details
+  name            String
+  description     String?  @db.Text
+  
+  // Color for UI
+  color           String?  @default("#3B82F6")
+  
+  // Icon/emoji
+  icon            String?
+  
+  // Order
+  order           Int      @default(0)
+  
+  // Is this a system collection (like "Interview Prep")
+  isSystem        Boolean  @default(false)
+  
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+  
+  bookmarks       Bookmark[]
+  
+  @@unique([userId, name])
+  @@index([userId])
+}
+
+model UserNote {
+  id              String   @id @default(cuid())
+  userId          String
+  user            User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  
+  // Note details
+  title           String
+  content         String   @db.Text
+  
+  // Content reference (optional)
+  contentType     String?
+  contentId       String?
+  contentTitle    String?
+  
+  // Organization
+  collectionId    String?
+  tags            String[]
+  
+  // Note type
+  noteType        String   @default("general") // general, formula, concept, code_snippet, interview_tip
+  
+  // Is this a template
+  isTemplate      Boolean  @default(false)
+  
+  // Quick revision flag
+  isQuickRevision Boolean  @default(false)
+  
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+  
+  @@index([userId])
+  @@index([noteType])
+  @@index([contentType, contentId])
+  @@index([isQuickRevision])
+}
+
+// ─── Activity Tracking & Analytics Models ────────────────────────────────────────
+
+model ActivityLog {
+  id              String   @id @default(cuid())
+  userId          String
+  user            User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  
+  // Activity type
+  activityType    String   // login, study, complete_task, start_session, view_content
+  
+  // Activity details
+  category        String?  // coding, quiz, interview, revision, focus
+  description     String?  @db.Text
+  
+  // Content reference
+  contentType     String?
+  contentId       String?
+  contentTitle    String?
+  
+  // Metadata
+  metadata        Json?
+  
+  // Duration (if applicable)
+  duration        Int?     // Duration in milliseconds
+  
+  createdAt       DateTime @default(now())
+  
+  @@index([userId])
+  @@index([activityType])
+  @@index([category])
+  @@index([createdAt])
+}
+
+model WeeklyGoal {
+  id              String   @id @default(cuid())
+  userId          String
+  user            User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  
+  // Goal details
+  title           String
+  description     String?
+  
+  // Goal type
+  goalType        String   // study_hours, problems_solved, streak_days, topics_covered
+  
+  // Target
+  targetValue     Int
+  currentValue    Int      @default(0)
+  unit            String   // hours, problems, days, topics
+  
+  // Time period
+  startDate       DateTime @db.Date
+  endDate         DateTime @db.Date
+  
+  // Status
+  status          String   @default("active") // active, completed, failed
+  
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+  
+  @@unique([userId, startDate, goalType])
+  @@index([userId])
+  @@index([status])
+}
+
+model UserPreference {
+  id              String   @id @default(cuid())
+  userId          String   @unique
+  user            User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  
+  // Revision settings
+  dailyRevisionLimit Int   @default(20)
+  preferredRevisionTime String? // e.g., "morning", "afternoon", "evening"
+  
+  // Pomodoro settings
+  pomodoroDuration Int     @default(25)
+  shortBreakDuration Int   @default(5)
+  longBreakDuration Int    @default(15)
+  longBreakInterval Int    @default(4) // After how many pomodoros
+  
+  // Notification settings
+  dailyReminder     Boolean @default(true)
+  reminderTime      String? // e.g., "09:00"
+  revisionReminder  Boolean @default(true)
+  streakReminder    Boolean @default(true)
+  
+  // Learning preferences
+  preferredDifficulty String @default("medium")
+  focusTopics       String[]
+  
+  // Daily task settings
+  dailyCodingProblems Int  @default(1)
+  dailyMCQs         Int    @default(5)
+  dailyInterviewQuestions Int @default(1)
+  
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+  
+  @@index([userId])
+}
+
+// ─── Notification Models ─────────────────────────────────────────────────────────
+
+model Notification {
+  id              String   @id @default(cuid())
+  userId          String
+  user            User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  
+  // Notification type
+  type            String   // revision_due, daily_task, streak_warning, achievement, reminder
+  
+  // Content
+  title           String
+  message         String   @db.Text
+  
+  // Action link
+  actionUrl       String?
+  
+  // Metadata
+  metadata        Json?
+  
+  // Status
+  isRead          Boolean  @default(false)
+  isDismissed     Boolean  @default(false)
+  
+  createdAt       DateTime @default(now())
+  readAt          DateTime?
+  
+  @@index([userId])
+  @@index([type])
+  @@index([isRead])
+  @@index([createdAt])
+}

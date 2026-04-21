@@ -1,0 +1,418 @@
+// Evaluation and Feedback System Database Schema
+// Extends Prisma schema with detailed evaluation models
+
+model UserEvaluation {
+  id                String   @id @default(cuid())
+  userId            String
+  user              User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  // Evaluation metadata
+  evaluationType    String   // "coding", "interview", "quiz", "resume", "comprehensive"
+  sourceId          String?  // Problem ID, Interview ID, etc.
+  sourceType        String?  // "problem", "interview", "quiz", "resume"
+  
+  // Core scores
+  overallScore      Float    @default(0) // 0-100
+  scoreBreakdown    Json     // Detailed score components
+  
+  // Performance analysis
+  performanceLevel  String   @default("beginner") // beginner, intermediate, advanced, expert
+  improvementTrend  String   // "improving", "stable", "declining"
+  comparedToPrevious Float?  // % change from previous similar evaluation
+  
+  // Detailed evaluation data
+  evaluationData    Json     // Full evaluation details (flexible)
+  strengthsIdentified String[]
+  weaknessesIdentified String[]
+  patternAnalysis   Json     // Patterns detected in performance
+  
+  // Feedback
+  feedbackId        String?
+  feedback          EvaluationFeedback? @relation(fields: [feedbackId], references: [id], onDelete: SetNull)
+  
+  // Recommendations
+  recommendationIds String[]
+  recommendations   RecommendationInsight[] @relation("EvalToRec")
+  
+  // Benchmarking
+  percentile        Float?   // User's percentile vs similar users
+  comparisonData    Json?    // Benchmark comparison details
+  
+  // Metadata
+  createdAt         DateTime @default(now())
+  updatedAt         DateTime @updatedAt
+  
+  @@index([userId])
+  @@index([evaluationType])
+  @@index([createdAt])
+}
+
+model EvaluationFeedback {
+  id                String   @id @default(cuid())
+  evaluationId      String   @unique
+  evaluation        UserEvaluation @relation(fields: [evaluationId], references: [id], onDelete: Cascade)
+  
+  // Feedback structure
+  summary           String   @db.Text
+  detailedFeedback  String   @db.Text
+  keyFindings       String[] // 5-10 key insights
+  
+  // Dimensional feedback (for interviews)
+  dimensionalScores Json?    // {technicalAccuracy: 0.8, clarity: 0.75, ...}
+  dimensionalFeedback Json? // Detailed feedback per dimension
+  
+  // Improvement areas
+  topImprovementAreas String[] // Prioritized areas for improvement
+  specificLessons   String[] // Concrete lessons to learn
+  
+  // Ideal performance
+  idealApproach     String? @db.Text // What the ideal solution/response looks like
+  compareToIdeal    String? @db.Text // How user's approach compares
+  
+  // Action items
+  immediateActions  String[] // What to do next
+  longTermActions   String[] // Bigger picture improvements
+  
+  // Tone and personalization
+  tone              String   @default("supportive") // supportive, challenging, encouraging
+  motivationalInsight String? @db.Text
+  
+  createdAt         DateTime @default(now())
+  updatedAt         DateTime @updatedAt
+  
+  @@index([evaluationId])
+}
+
+model PerformancePattern {
+  id                String   @id @default(cuid())
+  userId            String
+  user              User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  
+  // Pattern metadata
+  patternType       String   // "logical_error", "inefficiency", "incomplete_solution", etc.
+  category          String   // Problem category where pattern occurs
+  severity          String   // "low", "medium", "high"
+  frequency         Int      @default(1) // How many times this pattern has occurred
+  
+  // Pattern details
+  description       String   @db.Text // Human-readable pattern description
+  examples          String[] // Problem IDs where this pattern occurred
+  commonMistakes    String[] // Common mistakes in this pattern
+  
+  // Impact analysis
+  averageScoreImpact Float  @default(0) // How much this pattern hurts the score
+  estimatedTimeLoss Int     @default(0) // Estimated time wasted (minutes)
+  
+  // Intervention
+  suggestedFix      String   @db.Text
+  resourceLinks     String[] // Links to learning materials
+  recommendedProblems String[] // Problem IDs to practice
+  
+  // Tracking
+  lastOccurredAt    DateTime @default(now())
+  isResolved        Boolean  @default(false)
+  resolvedAt        DateTime?
+  
+  createdAt         DateTime @default(now())
+  updatedAt         DateTime @updatedAt
+  
+  @@index([userId, patternType])
+  @@index([isResolved])
+}
+
+model InterviewEvaluation {
+  id                String   @id @default(cuid())
+  userId            String
+  user              User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  
+  interviewId       String   // Reference to mock interview
+  evaluationId      String   @unique
+  evaluation        UserEvaluation @relation(fields: [evaluationId], references: [id], onDelete: Cascade)
+  
+  // Dimension scores
+  technicalAccuracy Float   // Understanding and correctness (0-100)
+  clarity           Float   // Explanation clarity (0-100)
+  confidence        Float   // Confidence level (0-100)
+  communication     Float   // Communication skills (0-100)
+  problemSolving    Float   // Problem-solving approach (0-100)
+  timeManagement    Float   // Time usage efficiency (0-100)
+  
+  // Interview specifics
+  questionsAnswered Int
+  questionsPartial  Int
+  questionsIncorrect Int
+  
+  // Response analysis
+  responseQuality   Json     // Per-question analysis
+  codeQuality       Json?    // Code-specific analysis if applicable
+  explanationDepth  Json     // Depth of explanations
+  
+  // Interview-like feedback
+  interviewerNotes  String   @db.Text // Feedback as if from real interviewer
+  whatWentWell      String[] // Strengths shown in interview
+  improvements      String[] // Areas to improve
+  
+  // Comparison
+  companyExpectations String @db.Text // What this company expects
+  readyForCompany   Boolean  @default(false) // Would interviewer recommend?
+  companyFit        String? // Which companies matches this level
+  
+  createdAt         DateTime @default(now())
+  updatedAt         DateTime @updatedAt
+  
+  @@index([userId])
+  @@index([interviewId])
+}
+
+model CodingEvaluation {
+  id                String   @id @default(cuid())
+  userId            String
+  user              User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  
+  problemId         String
+  evaluationId      String   @unique
+  evaluation        UserEvaluation @relation(fields: [evaluationId], references: [id], onDelete: Cascade)
+  
+  // Solution analysis
+  correctness       Float   // Test pass rate (0-100)
+  efficiency        Float   // Time & space efficiency score (0-100)
+  codeQuality       Float   // Code quality/readability (0-100)
+  approach          Float   // Problem-solving approach (0-100)
+  
+  // Detailed analysis
+  testsPassed       Int
+  totalTests        Int
+  timeComplexity    String? // O(n), O(n2), etc.
+  spaceComplexity   String?
+  
+  // Problem-specific insights
+  mistakeType       String? // "logical_error", "edge_case", "inefficiency", "incomplete"
+  mistakeExplanation String? @db.Text
+  
+  // Comparison
+  optimalSolution   String? @db.Text // Ideal approach
+  userApproachVsOptimal String? @db.Text // How user's differs
+  
+  // Patterns detected
+  detectedPatterns  String[]
+  recurringIssues   String[] // Issues we've seen before from this user
+  
+  // Improvement suggestions
+  nextSteps         String[] // What to do next
+  similarProblems   String[] // Related problems to practice
+  conceptsToReview  String[] // Concepts to revisit
+  
+  createdAt         DateTime @default(now())
+  updatedAt         DateTime @updatedAt
+  
+  @@index([userId, problemId])
+}
+
+model PerformanceMetricsSnapshot {
+  id                String   @id @default(cuid())
+  userId            String
+  user              User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  
+  // Snapshot metadata (daily, weekly, milestone)
+  snapshotType      String   // "daily", "weekly", "milestone", "comprehensive"
+  snapshotDate      DateTime
+  
+  // Overall metrics
+  overallScore      Float    @default(0) // 0-100
+  totalEvaluations  Int      @default(0)
+  
+  // Category scores
+  codingScore       Float    @default(0)
+  interviewScore    Float    @default(0)
+  learningScore     Float    @default(0)
+  resumeScore       Float    @default(0)
+  
+  // Activity metrics
+  problemsAttempted Int      @default(0)
+  problemsSolved    Int      @default(0)
+  solutionRate      Float    @default(0) // % solved
+  averageAccuracy   Float    @default(0)
+  
+  interviewsAttempted Int    @default(0)
+  averageInterviewScore Float @default(0)
+  
+  hoursSpent        Float    @default(0)
+  sessionsCompleted Int      @default(0)
+  
+  // Trend analysis
+  scoreChange       Float    @default(0) // % change from previous snapshot
+  trend             String   // "improving", "stable", "declining"
+  
+  // Benchmarking
+  percentile        Float?   // vs similar users
+  userPercentile    String?  // "top 10%", "top 25%", etc.
+  
+  // Detailed data
+  strengthAreas     String[] // Top performing areas
+  weaknessAreas     String[] // Areas needing work
+  recommendations   String[] // Top recommendations for user
+  
+  // Metadata
+  generatedAt       DateTime @default(now())
+  
+  @@index([userId, snapshotDate])
+}
+
+model PerformanceReport {
+  id                String   @id @default(cuid())
+  userId            String
+  user              User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  
+  // Report metadata
+  reportType        String   // "weekly", "monthly", "milestone", "comprehensive"
+  reportPeriodStart DateTime
+  reportPeriodEnd   DateTime
+  
+  // Summary
+  title             String
+  summary           String   @db.Text
+  readabilityScore  String? // "excellent", "good", "needs_work"
+  
+  // Key metrics
+  topMetrics        Json     // Key numbers (problems solved, improvement %, etc.)
+  scoringBreakdown  Json     // Scores in different categories
+  
+  // Narrative sections
+  achievements      String   @db.Text
+  areasOfConcern    String   @db.Text
+  improvements      String   @db.Text
+  keyInsights       String[] // 5-7 main insights
+  
+  // Recommendations
+  recommendedActions String[]
+  priorityActions   String[] // Top 3 things to focus on
+  suggestedContent  String[] // IDs of modules, problems, etc. to tackle
+  
+  // Benchmarking insights
+  benchmarkComparison String? @db.Text
+  competitivePosition String? // "ahead", "on_par", "behind" vs peers
+  
+  // Motivation
+  motivationalMessage String? @db.Text
+  nextMilestones    String[] // What's the next target
+  
+  // Report structure (for generation)
+  sections          String[] // Which sections are included
+  format            String   @default("comprehensive") // "brief", "standard", "comprehensive"
+  
+  // Status
+  reviewed          Boolean  @default(false)
+  reviewedAt        DateTime?
+  readBy            Boolean  @default(false)
+  readAt            DateTime?
+  
+  createdAt         DateTime @default(now())
+  updatedAt         DateTime @updatedAt
+  
+  @@index([userId, reportType])
+  @@index([reportPeriodStart])
+}
+
+model RecommendationInsight {
+  id                String   @id @default(cuid())
+  userId            String
+  user              User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  
+  // Recommendation metadata
+  title             String
+  description       String   @db.Text
+  category          String   // "problem", "module", "interview", "concept_review"
+  priority          Int      // 1-5, where 5 is highest
+  
+  // Why this recommendation
+  reason            String   @db.Text // Why we're recommending this
+  basedOnWeakness   String?  // Which weakness this addresses
+  basedOnPattern    String?  // Which pattern this helps with
+  
+  // Content reference
+  contentType       String   // "problem_id", "module_id", "interview_type"
+  contentId         String
+  contentTitle      String?
+  contentDifficulty String?  // easy, medium, hard
+  estimatedTime     Int?     // Estimated time in minutes
+  
+  // Impact prediction
+  expectedBenefit   String   @db.Text
+  expectedScoreIncrease Float? // Predicted improvement
+  
+  // Tracking
+  suggestedAt       DateTime @default(now())
+  actedUpon         Boolean  @default(false)
+  actionTakenAt     DateTime?
+  dismissed         Boolean  @default(false)
+  dismissedReason   String?
+  
+  // Evaluation
+  evaluationId      String?
+  evaluation        UserEvaluation? @relation("EvalToRec", fields: [evaluationId], references: [id])
+  
+  createdAt         DateTime @default(now())
+  updatedAt         DateTime @updatedAt
+  
+  @@index([userId, priority])
+  @@index([actedUpon])
+}
+
+model BenchmarkComparison {
+  id                String   @id @default(cuid())
+  userId            String   @unique
+  user              User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  
+  // User's level grouping
+  levelGroup        String   // "beginner", "intermediate", "advanced"
+  experienceGroup   String   // Years of experience bracket
+  
+  // Scorecard
+  userScore         Float
+  groupMedianScore  Float
+  groupAvgScore     Float
+  groupMaxScore     Float
+  groupMinScore     Float
+  
+  // Percentile
+  percentileRank    Float    // 0-100, where user places in this group
+  percentileLabel   String   // "top 10%", "top 25%", etc.
+  
+  // Metric comparisons
+  codingScoreVsGroup Float   // User's coding vs group avg
+  interviewScoreVsGroup Float
+  learningScoreVsGroup Float
+  
+  // Speed comparisons
+  problemSolvingSpeedVsGroup Float // Problems/hour vs group
+  
+  // Trend comparisons
+  improvementRateVsGroup Float // How fast user is improving vs group
+  
+  // Insights
+  strengths         String[] // Areas where ahead of group
+  weaknesses        String[] // Areas where behind group
+  opportunities     String[] // What could help most
+  
+  // Aggregated data (anonymized)
+  groupSize         Int
+  dataPoints        Int
+  lastUpdated       DateTime
+  
+  createdAt         DateTime @default(now())
+  updatedAt         DateTime @updatedAt
+}
+
+// Update User model
+model User {
+  // ... existing fields ...
+  
+  evaluations       UserEvaluation[]
+  performancePatterns PerformancePattern[]
+  interviewEvaluations InterviewEvaluation[]
+  codingEvaluations CodingEvaluation[]
+  metricsSnapshots  PerformanceMetricsSnapshot[]
+  reports           PerformanceReport[]
+  recommendations   RecommendationInsight[]
+  benchmarkComparison BenchmarkComparison?
+}

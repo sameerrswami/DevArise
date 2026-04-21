@@ -1,0 +1,201 @@
+// ─── Personalization and AI Memory System Schema ──────────────────────────────────
+// This schema extends the main schema with models for personalized learning,
+// AI memory, recommendations, and adaptive features.
+
+model UserProfile {
+  id                String   @id @default(cuid())
+  userId            String   @unique
+  user              User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  // Core Profile Data
+  learningStyle     String?  // visual, auditory, kinesthetic, reading/writing
+  preferredDifficulty String? @default("medium") // easy, medium, hard
+  consistencyPattern Json?   // JSON object with daily/weekly patterns
+  targetRoles       String[] // Array of career roles (e.g., ["SDE-1", "Frontend Dev"])
+
+  // Performance Analytics
+  strengths         String[] // Array of strong topics (e.g., ["arrays", "strings"])
+  weaknesses        String[] // Array of weak topics (e.g., ["graphs", "dp"])
+  averageAccuracy   Float    @default(0.0)
+  averageSolveTime  Int?     // in milliseconds
+  problemCategories Json     // JSON with category-wise stats {category: {solved: 10, accuracy: 0.8}}
+
+  // Learning Preferences
+  preferredLanguages String[] // ["javascript", "python", "cpp"]
+  sessionDuration    Int?     // preferred study session length in minutes
+  learningPace       String?  // slow, medium, fast
+
+  // Adaptive Metrics
+  engagementScore    Float    @default(0.0) // 0-1 score based on activity
+  improvementRate    Float    @default(0.0) // rate of skill improvement
+  consistencyScore   Float    @default(0.0) // 0-1 based on regular practice
+
+  // Metadata
+  lastUpdated        DateTime @updatedAt
+  createdAt          DateTime @default(now())
+
+  goals              UserGoal[]
+  activities         UserActivity[]
+  recommendations    Recommendation[]
+  insights           Insight[]
+
+  @@index([userId])
+}
+
+model UserGoal {
+  id                String   @id @default(cuid())
+  userId            String
+  profile           UserProfile @relation(fields: [userId], references: [userId], onDelete: Cascade)
+
+  title             String
+  description       String?  @db.Text
+  type              String   // placement, skill, contest, interview, certification
+  targetDate        DateTime?
+  status            String   @default("active") // active, completed, paused, cancelled
+
+  // Goal Metrics
+  targetMetrics     Json     // JSON with specific targets (e.g., {problems: 100, accuracy: 0.8})
+  currentProgress   Json     // JSON with current progress
+  priority          Int      @default(1) // 1-5 priority level
+
+  // Timeline
+  createdAt         DateTime @default(now())
+  updatedAt         DateTime @updatedAt
+  completedAt       DateTime?
+
+  @@index([userId])
+  @@index([type])
+  @@index([status])
+}
+
+model UserActivity {
+  id                String   @id @default(cuid())
+  userId            String
+  profile           UserProfile @relation(fields: [userId], references: [userId], onDelete: Cascade)
+
+  activityType      String   // problem_solved, interview_completed, quiz_taken, video_watched, etc.
+  activityId        String?  // ID of the related entity (problemId, interviewId, etc.)
+  metadata          Json     // JSON with activity-specific data (score, time, difficulty, etc.)
+
+  // Performance Data
+  score             Float?   // 0-1 score for the activity
+  timeSpent         Int?     // time spent in seconds
+  difficulty        String?  // easy, medium, hard
+  category          String?  // topic category
+
+  // Context
+  sessionId         String?  // ID to group related activities
+  source            String?  // where the activity came from (dashboard, recommendation, etc.)
+
+  timestamp         DateTime @default(now())
+
+  @@index([userId])
+  @@index([activityType])
+  @@index([timestamp])
+  @@index([category])
+}
+
+model Recommendation {
+  id                String   @id @default(cuid())
+  userId            String
+  profile           UserProfile @relation(fields: [userId], references: [userId], onDelete: Cascade)
+
+  type              String   // problem, interview, tutorial, revision, contest
+  title             String
+  description       String   @db.Text
+  priority          Int      @default(1) // 1-5 priority level
+
+  // Recommendation Details
+  contentId         String?  // ID of recommended content
+  contentType       String?  // Problem, Video, Contest, etc.
+  reason            String   @db.Text // Why this recommendation
+  expectedBenefit   String?  // Expected improvement
+
+  // Status
+  status            String   @default("pending") // pending, viewed, completed, dismissed
+  viewedAt          DateTime?
+  completedAt       DateTime?
+
+  // Metadata
+  confidence        Float    @default(0.5) // AI confidence in recommendation
+  createdAt         DateTime @default(now())
+  expiresAt         DateTime?
+
+  @@index([userId])
+  @@index([type])
+  @@index([status])
+  @@index([priority])
+}
+
+model ConversationMemory {
+  id                String   @id @default(cuid())
+  userId            String
+  sessionId         String   // Unique session identifier
+
+  // Conversation Context
+  aiFeature         String   // tutor, buddy, chat, etc.
+  conversationType  String   // learning, problem_solving, interview_prep, etc.
+
+  // Memory Content
+  userMessage       String   @db.Text
+  aiResponse        String   @db.Text
+  context           Json     // Additional context (current topic, user state, etc.)
+
+  // Memory Metadata
+  importance        Int      @default(1) // 1-5 importance for long-term memory
+  topics            String[] // Topics discussed
+  emotions          String[] // Detected emotions or sentiments
+  keyInsights       String[] // Key learnings or insights from conversation
+
+  // Timestamps
+  createdAt         DateTime @default(now())
+  lastAccessed      DateTime @default(now())
+
+  @@index([userId])
+  @@index([sessionId])
+  @@index([aiFeature])
+  @@index([conversationType])
+  @@index([createdAt])
+}
+
+model Insight {
+  id                String   @id @default(cuid())
+  userId            String
+  profile           UserProfile @relation(fields: [userId], references: [userId], onDelete: Cascade)
+
+  type              String   // weekly_summary, monthly_report, milestone, improvement, warning
+  title             String
+  content           String   @db.Text
+
+  // Insight Data
+  metrics           Json     // JSON with relevant metrics
+  trends            Json     // JSON with trend data
+  recommendations   String[] // Array of suggested actions
+
+  // Status
+  isRead            Boolean  @default(false)
+  readAt            DateTime?
+
+  // Timeline
+  periodStart       DateTime
+  periodEnd         DateTime
+  createdAt         DateTime @default(now())
+
+  @@index([userId])
+  @@index([type])
+  @@index([isRead])
+  @@index([createdAt])
+}
+
+// ─── Extended User Model Relations ─────────────────────────────────────────────
+
+model User {
+  // ... existing fields ...
+
+  // Personalization relations
+  profile           UserProfile?
+  conversationMemories ConversationMemory[]
+
+  // ... existing relations ...
+}</content>
+<parameter name="filePath">c:\Users\Sameer Swami\Downloads\NeuroLearn-Ai-main\NeuroLearn-Ai-main\prisma\personalization-schema.prisma

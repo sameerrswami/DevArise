@@ -1,0 +1,449 @@
+// ─── Community System Schema ─────────────────────────────────────────────────────
+// This file contains the community features schema for Q&A, Interview Experiences,
+// Mock Interviews (peer-to-peer), and related features.
+
+// ─── Q&A / Doubt Solving System ──────────────────────────────────────────────────
+
+model Question {
+  id              String       @id @default(cuid())
+  title           String       @db.VarChar(500)
+  content         String       @db.Text
+  userId          String
+  user            User         @relation(fields: [userId], references: [id], onDelete: Cascade)
+  category        String       // DataStructures, WebDev, DBMS, OS, InterviewPrep, etc.
+  tags            String[]     // Array of tags for better categorization
+  slug            String       @unique
+  views           Int          @default(0)
+  upvotes         Int          @default(0)
+  downvotes        Int          @default(0)
+  isResolved      Boolean      @default(false)
+  isPinned        Boolean      @default(false)
+  isLocked        Boolean      @default(false)
+  bestAnswerId    String?      // Reference to the best answer
+  createdAt       DateTime     @default(now())
+  updatedAt       DateTime     @updatedAt
+  
+  answers         Answer[]
+  comments        QuestionComment[]
+  votes           QuestionVote[]
+  bookmarks       QuestionBookmark[]
+  
+  @@index([category])
+  @@index([userId])
+  @@index([slug])
+  @@index([createdAt])
+  @@index([tags])
+}
+
+model Answer {
+  id              String       @id @default(cuid())
+  content         String       @db.Text
+  questionId      String
+  question        Question     @relation(fields: [questionId], references: [id], onDelete: Cascade)
+  userId          String
+  user            User         @relation(fields: [userId], references: [id], onDelete: Cascade)
+  upvotes         Int          @default(0)
+  downvotes       Int          @default(0)
+  isAccepted      Boolean      @default(false)
+  isEdited        Boolean      @default(false)
+  createdAt       DateTime     @default(now())
+  updatedAt       DateTime     @updatedAt
+  
+  comments        AnswerComment[]
+  votes           AnswerVote[]
+  
+  @@index([questionId])
+  @@index([userId])
+  @@index([createdAt])
+}
+
+model QuestionVote {
+  id              String       @id @default(cuid())
+  questionId      String
+  question        Question     @relation(fields: [questionId], references: [id], onDelete: Cascade)
+  userId          String
+  user            User         @relation(fields: [userId], references: [id], onDelete: Cascade)
+  type            Int          // 1 for upvote, -1 for downvote
+  createdAt       DateTime     @default(now())
+  
+  @@unique([questionId, userId])
+  @@index([userId])
+}
+
+model AnswerVote {
+  id              String       @id @default(cuid())
+  answerId        String
+  answer          Answer       @relation(fields: [answerId], references: [id], onDelete: Cascade)
+  userId          String
+  user            User         @relation(fields: [userId], references: [id], onDelete: Cascade)
+  type            Int          // 1 for upvote, -1 for downvote
+  createdAt       DateTime     @default(now())
+  
+  @@unique([answerId, userId])
+  @@index([userId])
+}
+
+model QuestionComment {
+  id              String       @id @default(cuid())
+  content         String       @db.Text
+  questionId      String
+  question        Question     @relation(fields: [questionId], references: [id], onDelete: Cascade)
+  userId          String
+  user            User         @relation(fields: [userId], references: [id], onDelete: Cascade)
+  createdAt       DateTime     @default(now())
+  
+  @@index([questionId])
+  @@index([userId])
+}
+
+model AnswerComment {
+  id              String       @id @default(cuid())
+  content         String       @db.Text
+  answerId        String
+  answer          Answer       @relation(fields: [answerId], references: [id], onDelete: Cascade)
+  userId          String
+  user            User         @relation(fields: [userId], references: [id], onDelete: Cascade)
+  createdAt       DateTime     @default(now())
+  
+  @@index([answerId])
+  @@index([userId])
+}
+
+model QuestionBookmark {
+  id              String       @id @default(cuid())
+  questionId      String
+  question        Question     @relation(fields: [questionId], references: [id], onDelete: Cascade)
+  userId          String
+  user            User         @relation(fields: [userId], references: [id], onDelete: Cascade)
+  createdAt       DateTime     @default(now())
+  
+  @@unique([questionId, userId])
+  @@index([userId])
+}
+
+// ─── Interview Experience System ─────────────────────────────────────────────────
+
+model InterviewExperience {
+  id              String       @id @default(cuid())
+  userId          String
+  user            User         @relation(fields: [userId], references: [id], onDelete: Cascade)
+  companyName     String       @db.VarChar(255)
+  role            String       @db.VarChar(255) // SDE-1, SDE-2, Intern, etc.
+  location        String?      @db.VarChar(255)
+  interviewType   String       // On-campus, Off-campus, Referral, Pool Campus
+  experience      Int?         // Years of experience (0 for freshers)
+  rounds          InterviewRound[]
+  overallRating   Int          // 1-5 rating
+  difficulty      String       // Easy, Medium, Hard
+  offerReceived   Boolean      @default(false)
+  salary          String?      @db.VarChar(100) // CTC range
+  content         String       @db.Text
+  tips            String?      @db.Text // Preparation tips
+  upvotes         Int          @default(0)
+  downvotes       Int          @default(0)
+  views           Int          @default(0)
+  isVerified      Boolean      @default(false) // Verified by platform
+  isAnonymous     Boolean      @default(false)
+  createdAt       DateTime     @default(now())
+  updatedAt       DateTime     @updatedAt
+  
+  votes           ExperienceVote[]
+  comments        ExperienceComment[]
+  
+  @@index([companyName])
+  @@index([role])
+  @@index([userId])
+  @@index([createdAt])
+}
+
+model InterviewRound {
+  id              String       @id @default(cuid())
+  experienceId    String
+  experience      InterviewExperience @relation(fields: [experienceId], references: [id], onDelete: Cascade)
+  roundType       String       // Technical, HR, Coding, System Design, Managerial
+  roundNumber     Int          // 1, 2, 3, etc.
+  duration        Int?         // Duration in minutes
+  difficulty      String?      // Easy, Medium, Hard
+  questions       String       @db.Text // JSON array of questions asked
+  feedback        String?      @db.Text
+  rating          Int?         // 1-5 rating for this round
+  createdAt       DateTime     @default(now())
+  
+  @@index([experienceId])
+}
+
+model ExperienceVote {
+  id              String       @id @default(cuid())
+  experienceId    String
+  experience      InterviewExperience @relation(fields: [experienceId], references: [id], onDelete: Cascade)
+  userId          String
+  user            User         @relation(fields: [userId], references: [id], onDelete: Cascade)
+  type            Int          // 1 for upvote, -1 for downvote
+  createdAt       DateTime     @default(now())
+  
+  @@unique([experienceId, userId])
+  @@index([userId])
+}
+
+model ExperienceComment {
+  id              String       @id @default(cuid())
+  content         String       @db.Text
+  experienceId    String
+  experience      InterviewExperience @relation(fields: [experienceId], references: [id], onDelete: Cascade)
+  userId          String
+  user            User         @relation(fields: [userId], references: [id], onDelete: Cascade)
+  createdAt       DateTime     @default(now())
+  
+  @@index([experienceId])
+  @@index([userId])
+}
+
+// ─── Peer-to-Peer Mock Interview System ──────────────────────────────────────────
+
+model PeerMockInterview {
+  id              String       @id @default(cuid())
+  interviewerId   String
+  interviewer     User         @relation("Interviewer", fields: [interviewerId], references: [id], onDelete: Cascade)
+  intervieweeId   String
+  interviewee     User         @relation("Interviewee", fields: [intervieweeId], references: [id], onDelete: Cascade)
+  jobPosition     String       @db.VarChar(255)
+  jobDescription  String?      @db.Text
+  experience      Int?         // Years of experience
+  roundType       String       // DSA, HR, Technical, System Design, Mixed
+  scheduledAt     DateTime
+  duration        Int          // Duration in minutes
+  status          String       @default("scheduled") // scheduled, completed, cancelled, no-show
+  meetingLink     String?      @db.VarChar(500)
+  questions       String?      @db.Text // JSON array of questions asked
+  feedback        String?      @db.Text // Interviewer's feedback
+  rating          Int?         // 1-5 rating from interviewer
+  intervieweeFeedback String?  @db.Text // Interviewee's feedback about the experience
+  intervieweeRating Int?       // 1-5 rating from interviewee
+  createdAt       DateTime     @default(now())
+  updatedAt       DateTime     @updatedAt
+  
+  @@index([interviewerId])
+  @@index([intervieweeId])
+  @@index([status])
+  @@index([scheduledAt])
+}
+
+model MockInterviewAvailability {
+  id              String       @id @default(cuid())
+  userId          String
+  user            User         @relation(fields: [userId], references: [id], onDelete: Cascade)
+  dayOfWeek       Int          // 0-6 (Sunday - Saturday)
+  startTime       String       // HH:MM format
+  endTime         String       // HH:MM format
+  isActive        Boolean      @default(true)
+  createdAt       DateTime     @default(now())
+  updatedAt       DateTime     @updatedAt
+  
+  @@index([userId])
+  @@unique([userId, dayOfWeek, startTime])
+}
+
+// ─── Community Reputation & Gamification ─────────────────────────────────────────
+
+model Reputation {
+  id              String       @id @default(cuid())
+  userId          String
+  user            User         @relation(fields: [userId], references: [id], onDelete: Cascade)
+  totalPoints     Int          @default(0)
+  questionPoints  Int          @default(0)
+  answerPoints    Int          @default(0)
+  experiencePoints Int         @default(0)
+  helpfulPoints   Int          @default(0)
+  level           String       @default("Beginner") // Beginner, Contributor, Expert, Mentor, Legend
+  rank            Int          @default(0) // Global rank
+  createdAt       DateTime     @default(now())
+  updatedAt       DateTime     @updatedAt
+  
+  @@unique([userId])
+  @@index([totalPoints])
+  @@index([level])
+}
+
+model ReputationHistory {
+  id              String       @id @default(cuid())
+  userId          String
+  user            User         @relation(fields: [userId], references: [id], onDelete: Cascade)
+  points          Int          // Points earned/lost in this transaction
+  reason          String       // Why points were awarded/deducted
+  sourceType      String       // question, answer, experience, mockInterview, badge
+  sourceId        String?      // Reference to the source (question ID, answer ID, etc.)
+  createdAt       DateTime     @default(now())
+  
+  @@index([userId])
+  @@index([createdAt])
+}
+
+model CommunityBadge {
+  id              String       @id @default(cuid())
+  name            String       @unique
+  description     String?
+  icon            String?      // Emoji or icon identifier
+  color           String?      // Hex color
+  pointsRequired  Int          @default(0)
+  category        String       // contribution, helper, expert, milestone
+  isActive        Boolean      @default(true)
+  createdAt       DateTime     @default(now())
+  
+  @@index([category])
+}
+
+model UserCommunityBadge {
+  id              String       @id @default(cuid())
+  userId          String
+  user            User         @relation(fields: [userId], references: [id], onDelete: Cascade)
+  badgeId         String
+  badge           CommunityBadge @relation(fields: [badgeId], references: [id], onDelete: Cascade)
+  earnedAt        DateTime     @default(now())
+  context         String?      @db.Text // Context about how it was earned
+  
+  @@unique([userId, badgeId])
+  @@index([userId])
+}
+
+// ─── User Expertise & Profile ────────────────────────────────────────────────────
+
+model UserExpertise {
+  id              String       @id @default(cuid())
+  userId          String
+  user            User         @relation(fields: [userId], references: [id], onDelete: Cascade)
+  category        String       // DataStructures, WebDev, DBMS, OS, etc.
+  level           Int          // 1-5 expertise level
+  verified        Boolean      @default(false)
+  badges          Int          @default(0) // Number of badges in this category
+  helpfulAnswers  Int          @default(0) // Number of helpful answers
+  createdAt       DateTime     @default(now())
+  updatedAt       DateTime     @updatedAt
+  
+  @@unique([userId, category])
+  @@index([userId])
+}
+
+// ─── Moderation System ───────────────────────────────────────────────────────────
+
+model Report {
+  id              String       @id @default(cuid())
+  reporterId      String
+  reporter        User         @relation("Reporter", fields: [reporterId], references: [id], onDelete: Cascade)
+  reportedUserId  String?
+  reportedUser    User?        @relation("ReportedUser", fields: [reportedUserId], references: [id], onDelete: SetNull)
+  contentType     String       // question, answer, experience, comment, user
+  contentId       String       // ID of the reported content
+  reason          String       // Reason for reporting
+  description     String?      @db.Text
+  status          String       @default("pending") // pending, reviewed, resolved, rejected
+  reviewedBy      String?      // Admin user ID who reviewed
+  reviewedAt      DateTime?
+  action          String?      // Action taken (warning, suspension, deletion)
+  createdAt       DateTime     @default(now())
+  updatedAt       DateTime     @updatedAt
+  
+  @@index([contentType])
+  @@index([contentId])
+  @@index([status])
+  @@index([createdAt])
+}
+
+model Warning {
+  id              String       @id @default(cuid())
+  userId          String
+  user            User         @relation(fields: [userId], references: [id], onDelete: Cascade)
+  reason          String
+  description     String?      @db.Text
+  severity        String       @default("low") // low, medium, high
+  issuedBy        String       // Admin user ID
+  expiresAt       DateTime?
+  isActive        Boolean      @default(true)
+  createdAt       DateTime     @default(now())
+  
+  @@index([userId])
+  @@index([isActive])
+}
+
+model ModerationLog {
+  id              String       @id @default(cuid())
+  moderatorId     String
+  moderator       User         @relation(fields: [moderatorId], references: [id], onDelete: Cascade)
+  action          String       // delete, edit, warn, suspend, ban
+  contentType     String       // question, answer, experience, comment, user
+  contentId       String
+  reason          String
+  details         String?      @db.Text
+  createdAt       DateTime     @default(now())
+  
+  @@index([moderatorId])
+  @@index([contentType])
+  @@index([createdAt])
+}
+
+// ─── Community Notifications ─────────────────────────────────────────────────────
+
+model CommunityNotification {
+  id              String       @id @default(cuid())
+  userId          String
+  user            User         @relation(fields: [userId], references: [id], onDelete: Cascade)
+  type            String       // answer, comment, upvote, badge, mention, system
+  title           String
+  message         String       @db.Text
+  link            String?      @db.VarChar(500)
+  isRead          Boolean      @default(false)
+  metadata        Json?        // Additional data
+  createdAt       DateTime     @default(now())
+  
+  @@index([userId])
+  @@index([isRead])
+  @@index([createdAt])
+}
+
+// ─── Community Tags ──────────────────────────────────────────────────────────────
+
+model CommunityTag {
+  id              String       @id @default(cuid())
+  name            String       @unique
+  description     String?      @db.Text
+  color           String?      // Hex color
+  usageCount      Int          @default(0)
+  parentTagId     String?
+  parentTag       CommunityTag? @relation("TagHierarchy", fields: [parentTagId], references: [id], onDelete: SetNull)
+  childTags       CommunityTag[] @relation("TagHierarchy")
+  createdAt       DateTime     @default(now())
+  
+  @@index([name])
+  @@index([parentTagId])
+}
+
+// ─── Update User model with community relations ──────────────────────────────────
+
+// Note: These relations should be added to the existing User model in schema.prisma
+// They are listed here for reference:
+//
+// model User {
+//   // ... existing fields ...
+//   
+//   // Community relations
+//   questions             Question[]
+//   answers               Answer[]
+//   questionVotes         QuestionVote[]
+//   answerVotes           AnswerVote[]
+//   questionComments      QuestionComment[]
+//   answerComments        AnswerComment[]
+//   bookmarkedQuestions   QuestionBookmark[]
+//   interviewExperiences  InterviewExperience[]
+//   experienceVotes       ExperienceVote[]
+//   experienceComments    ExperienceComment[]
+//   conductedMockInterviews PeerMockInterview[] @relation("Interviewer")
+//   attendedMockInterviews  PeerMockInterview[] @relation("Interviewee")
+//   mockAvailability      MockInterviewAvailability[]
+//   reputation            Reputation?
+//   reputationHistory     ReputationHistory[]
+//   communityBadges       UserCommunityBadge[]
+//   expertise             UserExpertise[]
+//   reportedContent       Report[] @relation("Reporter")
+//   warningsReceived      Warning[]
+//   moderationLogs        ModerationLog[]
+//   notifications         CommunityNotification[]
+// }
