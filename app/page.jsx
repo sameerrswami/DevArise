@@ -279,7 +279,7 @@ export default function HomePage() {
                   </div>
                   <div className="flex-1 w-full max-w-xl aspect-video rounded-2xl bg-slate-800 border border-slate-700 shadow-2xl flex items-center justify-center group cursor-pointer overflow-hidden relative">
                     <img 
-                      src="/neurolearn_hero_illustration_1776531634814.png" 
+                      src="/devarise_hero_illustration_1776531634814.png" 
                       alt="DevArise AI Learning" 
                       className="absolute inset-0 w-full h-full object-cover opacity-60 group-hover:scale-105 group-hover:opacity-80 transition-all duration-700" 
                     />

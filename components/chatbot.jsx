@@ -10,7 +10,7 @@ import { Input } from "@/components/ui/input";
 export function ChatBot() {
   const [isOpen, setIsOpen] = useState(false);
   const [messages, setMessages] = useState([
-    { role: "assistant", content: "Hi! I'm your NeuroLearn AI assistant. How can I help you today?" }
+    { role: "assistant", content: "Hi! I'm your DevArise AI assistant. How can I help you today?" }
   ]);
   const [input, setInput] = useState("");
   const [isLoading, setIsLoading] = useState(false);
@@ -77,7 +77,7 @@ export function ChatBot() {
           <CardHeader className="p-4 bg-primary text-primary-foreground flex flex-row items-center justify-between space-y-0">
             <CardTitle className="text-sm font-bold flex items-center gap-2">
               <Bot className="h-5 w-5" />
-              NeuroLearn AI
+              DevArise AI
             </CardTitle>
             <Button
               variant="ghost"

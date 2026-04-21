@@ -107,7 +107,7 @@ export default function PricingPage() {
           key: data.keyId,
           amount: data.amount,
           currency: data.currency,
-          name: "NeuroLearn AI",
+          name: "DevArise AI",
           description: `${planId.charAt(0).toUpperCase() + planId.slice(1)} ${billingCycle} Plan`,
           order_id: data.orderId,
           prefill: {
