@@ -22,8 +22,8 @@ This guide contains everything you need to finish deploying **DevArise AI** (for
 | `GOOGLE_CLIENT_SECRET` | `your_google_client_secret_from_env_local` |
 | `GEMINI_API_KEY` | `your_gemini_api_key_from_env_local` |
 | `YOUTUBE_API_KEYS` | `your_youtube_api_keys_from_env_local` |
-| `NEXTAUTH_URL` | `https://devarise-ai.vercel.app` (Or your Vercel URL) |
-| `NEXT_PUBLIC_APP_URL` | `https://devarise-ai.vercel.app` (Or your Vercel URL) |
+| `NEXTAUTH_URL` | `https://your-app-name.vercel.app` (The URL Vercel gives you) |
+| `NEXT_PUBLIC_APP_URL` | `https://your-app-name.vercel.app` (The URL Vercel gives you) |
 
 4. **Deploy**: Click **Deploy**.
 
