@@ -85,8 +85,8 @@ export default function IntelligentDashboard() {
 
   if (loading) {
     return (
-      <div className="min-h-screen bg-slate-950 pb-20">
-        <Navbar />
+    <div className="min-h-screen bg-slate-50 dark:bg-slate-950 pb-20">
+        <Navbar isAuthenticated={true} />
         <main className="max-w-7xl mx-auto px-4 py-12">
           <header className="mb-12 flex flex-col md:flex-row justify-between items-end gap-6">
             <div className="space-y-4">

@@ -112,7 +112,16 @@ export function Navbar({ showBackButton = false, showAuthButtons = true, isAuthe
   }, [isAuthenticated, mounted]);
 
   if (!mounted) return (
-    <header className="h-16 border-b bg-background/80 backdrop-blur-xl sticky top-0 z-50" />
+    <header className="h-16 border-b bg-background/80 backdrop-blur-xl sticky top-0 z-50 flex items-center px-6">
+      <div className="flex items-center gap-3 flex-1">
+        <div className="h-10 w-10 bg-muted rounded-xl animate-pulse" />
+        <div className="h-6 w-32 bg-muted rounded-lg animate-pulse" />
+      </div>
+      <div className="flex gap-2">
+        <div className="h-8 w-8 bg-muted rounded-xl animate-pulse" />
+        <div className="h-8 w-32 bg-muted rounded-xl animate-pulse" />
+      </div>
+    </header>
   );
 
   return (

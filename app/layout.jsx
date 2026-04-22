@@ -1,8 +1,4 @@
-import { Toaster } from "@/components/ui/sonner";
-import { ChatBot } from "@/components/chatbot";
-import { CommandMenu } from "@/components/command-menu";
-import { AuthProvider } from "@/components/auth/auth-provider";
-import { ThemeProvider } from "@/components/theme-provider";
+import { ClientProviders } from "@/components/providers/client-providers";
 import "./globals.css";
 
 export const metadata = {
@@ -31,21 +27,7 @@ export default function RootLayout({ children }) {
         />
       </head>
       <body className="min-h-screen bg-background selection:bg-violet-500/20 antialiased selection:text-white">
-        <AuthProvider>
-          <ThemeProvider
-            attribute="class"
-            defaultTheme="dark"
-            enableSystem={false}
-            disableTransitionOnChange={false}
-          >
-            <div className="relative min-h-screen flex flex-col">
-              <CommandMenu />
-              {children}
-              <ChatBot />
-              <Toaster position="top-right" closeButton richColors theme="dark" expand={true} />
-            </div>
-          </ThemeProvider>
-        </AuthProvider>
+        <ClientProviders>{children}</ClientProviders>
       </body>
     </html>
   );

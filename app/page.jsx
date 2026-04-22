@@ -84,7 +84,7 @@ export default function HomePage() {
     <div className="min-h-screen mesh-gradient dark:bg-slate-950 transition-colors duration-500 overflow-x-hidden">
       <Navbar
         showAuthButtons={true}
-        isAuthenticated={status === "authenticated"}
+        isAuthenticated={false}
       />
 
       <main className="container mx-auto px-4 py-12 relative">
