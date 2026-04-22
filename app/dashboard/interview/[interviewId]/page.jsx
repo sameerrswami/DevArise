@@ -1,4 +1,6 @@
 "use client";
+
+export const dynamic = "force-dynamic";
 import { Button } from "@/components/ui/button";
 import { Lightbulb, WebcamIcon } from "lucide-react";
 import { useRouter } from "next/navigation";

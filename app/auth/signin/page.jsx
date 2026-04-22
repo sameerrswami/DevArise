@@ -1,23 +1,25 @@
 "use client";
 
-import { useState } from "react";
+export const dynamic = "force-dynamic";
+
+import { useState, Suspense } from "react";
 import { motion } from "framer-motion";
 import { useRouter, useSearchParams } from "next/navigation";
 import { signIn } from "next-auth/react";
 import Link from "next/link";
-import { 
-  Mail, 
-  Lock, 
-  ArrowRight, 
+import {
+  Mail,
+  Lock,
+  ArrowRight,
   Sparkles,
   Loader2,
   AlertCircle,
   Eye,
   EyeOff,
-  Check
+  Check,
 } from "lucide-react";
 
-export default function SigninPage() {
+function SigninForm() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
   const [showPassword, setShowPassword] = useState(false);
@@ -28,7 +30,7 @@ export default function SigninPage() {
 
   const [formData, setFormData] = useState({
     email: "",
-    password: ""
+    password: "",
   });
 
   const handleSignin = async (e) => {
@@ -43,7 +45,7 @@ export default function SigninPage() {
         redirect: false,
       });
 
-      if (result.error) {
+      if (result?.error) {
         setError("Invalid email or password");
       } else {
         router.push(callbackUrl);
@@ -58,11 +60,10 @@ export default function SigninPage() {
 
   return (
     <div className="min-h-screen bg-slate-950 flex items-center justify-center p-4 relative overflow-hidden">
-      {/* Background Decorative Elements */}
       <div className="absolute top-[-10%] left-[-10%] w-[40%] h-[40%] bg-blue-600/10 blur-[120px] rounded-full pointer-events-none" />
       <div className="absolute bottom-[-10%] right-[-10%] w-[40%] h-[40%] bg-violet-600/10 blur-[120px] rounded-full pointer-events-none" />
 
-      <motion.div 
+      <motion.div
         initial={{ opacity: 0, y: 20 }}
         animate={{ opacity: 1, y: 0 }}
         className="w-full max-w-md relative z-10"
@@ -85,14 +86,16 @@ export default function SigninPage() {
 
           <form onSubmit={handleSignin} className="space-y-5">
             <div className="space-y-2">
-              <label className="text-xs font-semibold text-slate-400 uppercase tracking-widest ml-1">Email Address</label>
+              <label className="text-xs font-semibold text-slate-400 uppercase tracking-widest ml-1">
+                Email Address
+              </label>
               <div className="relative group">
                 <Mail className="absolute left-3 top-1/2 -translate-y-1/2 h-5 w-5 text-slate-500 group-focus-within:text-violet-500 transition-colors" />
-                <input 
-                  type="email" 
+                <input
+                  type="email"
                   required
                   value={formData.email}
-                  onChange={(e) => setFormData({...formData, email: e.target.value})}
+                  onChange={(e) => setFormData({ ...formData, email: e.target.value })}
                   className="w-full pl-11 pr-4 py-3 bg-slate-800/50 border border-slate-700 rounded-2xl text-white placeholder-slate-600 focus:outline-none focus:ring-2 focus:ring-violet-500/50 focus:border-violet-500 transition-all hover:bg-slate-800/80"
                   placeholder="john@example.com"
                 />
@@ -101,23 +104,28 @@ export default function SigninPage() {
 
             <div className="space-y-2">
               <div className="flex items-center justify-between ml-1">
-                <label className="text-xs font-semibold text-slate-400 uppercase tracking-widest">Password</label>
-                <Link href="/auth/forgot-password" size="sm" className="text-[10px] text-violet-400 hover:text-violet-300 transition-colors font-bold uppercase tracking-wider">
+                <label className="text-xs font-semibold text-slate-400 uppercase tracking-widest">
+                  Password
+                </label>
+                <Link
+                  href="/auth/forgot-password"
+                  className="text-[10px] text-violet-400 hover:text-violet-300 transition-colors font-bold uppercase tracking-wider"
+                >
                   Forgot Password?
                 </Link>
               </div>
               <div className="relative group">
                 <Lock className="absolute left-3 top-1/2 -translate-y-1/2 h-5 w-5 text-slate-500 group-focus-within:text-violet-500 transition-colors" />
-                <input 
-                  type={showPassword ? "text" : "password"} 
+                <input
+                  type={showPassword ? "text" : "password"}
                   required
                   value={formData.password}
-                  onChange={(e) => setFormData({...formData, password: e.target.value})}
+                  onChange={(e) => setFormData({ ...formData, password: e.target.value })}
                   className="w-full pl-11 pr-11 py-3 bg-slate-800/50 border border-slate-700 rounded-2xl text-white placeholder-slate-600 focus:outline-none focus:ring-2 focus:ring-violet-500/50 focus:border-violet-500 transition-all hover:bg-slate-800/80"
                   placeholder="••••••••"
                 />
-                <button 
-                  type="button" 
+                <button
+                  type="button"
                   onClick={() => setShowPassword(!showPassword)}
                   className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-500 hover:text-slate-300"
                 >
@@ -127,7 +135,7 @@ export default function SigninPage() {
             </div>
 
             {error && (
-              <motion.div 
+              <motion.div
                 initial={{ opacity: 0, y: 10 }}
                 animate={{ opacity: 1, y: 0 }}
                 className="p-3 bg-red-500/10 border border-red-500/50 rounded-xl flex items-center gap-2 text-red-500 text-xs font-medium"
@@ -156,14 +164,16 @@ export default function SigninPage() {
           </form>
 
           <div className="mt-8 text-center text-sm font-medium">
-            <span className="text-slate-500">Don't have an account? </span>
-            <Link href="/auth/signup" className="text-violet-400 font-bold hover:text-violet-300 transition-colors underline decoration-2 underline-offset-4 decoration-violet-500/30">
+            <span className="text-slate-500">Don&apos;t have an account? </span>
+            <Link
+              href="/auth/signup"
+              className="text-violet-400 font-bold hover:text-violet-300 transition-colors underline decoration-2 underline-offset-4 decoration-violet-500/30"
+            >
               Sign up for free
             </Link>
           </div>
         </div>
 
-        {/* Social Signin */}
         <div className="mt-8 flex items-center gap-4">
           <div className="h-px flex-1 bg-slate-800" />
           <span className="text-xs font-bold text-slate-600 uppercase tracking-widest">Or login with</span>
@@ -171,10 +181,10 @@ export default function SigninPage() {
         </div>
 
         <div className="mt-6">
-          <motion.button 
+          <motion.button
             whileHover={{ scale: 1.01 }}
             whileTap={{ scale: 0.99 }}
-            onClick={() => { setLoading(true); signIn('google'); }}
+            onClick={() => { setLoading(true); signIn("google"); }}
             className="w-full flex items-center justify-center gap-3 px-6 py-3.5 bg-white hover:bg-slate-100 text-slate-900 font-bold rounded-2xl transition-all shadow-xl disabled:opacity-50 active:scale-95"
             disabled={loading}
           >
@@ -189,5 +199,19 @@ export default function SigninPage() {
         </div>
       </motion.div>
     </div>
+  );
+}
+
+export default function SigninPage() {
+  return (
+    <Suspense
+      fallback={
+        <div className="min-h-screen bg-slate-950 flex items-center justify-center">
+          <div className="h-8 w-8 border-4 border-violet-500 border-t-transparent rounded-full animate-spin" />
+        </div>
+      }
+    >
+      <SigninForm />
+    </Suspense>
   );
 }

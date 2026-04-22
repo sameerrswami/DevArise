@@ -3,6 +3,22 @@ import { getToken } from 'next-auth/jwt';
 
 export async function middleware(req) {
   const res = NextResponse.next();
+  
+  // Render.com subdomain support
+  const allowedHosts = [
+    'localhost:3000',
+    'devarise.onrender.com',
+    process.env.VERCEL_URL ? `https://${process.env.VERCEL_URL}` : ''
+  ];
+  
+  const origin = req.headers.get('origin') || '';
+  const host = req.headers.get('host') || '';
+  
+  if (!allowedHosts.some(hostPattern => 
+    origin.includes(hostPattern) || host.includes(hostPattern.replace('https://', ''))
+  )) {
+    return new NextResponse('Unauthorized origin', { status: 401 });
+  }
 
   // Security Headers
   res.headers.set('X-DNS-Prefetch-Control', 'on');

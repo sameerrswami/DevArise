@@ -5,22 +5,24 @@ import { AuthProvider } from "@/components/auth/auth-provider";
 import { ThemeProvider } from "@/components/theme-provider";
 import "./globals.css";
 
+export const metadata = {
+  title: "DevArise AI — Master Coding. Ace Interviews. Land Your Dream Role.",
+  description: "DevArise AI is the ultimate AI-powered platform for coding practice, mock interviews, personalized roadmaps, and career growth for developers.",
+  keywords: "coding practice, AI interview, placement roadmap, DSA, full stack developer, tech career",
+  authors: [{ name: "DevArise AI" }],
+  openGraph: {
+    title: "DevArise AI — AI-Powered Developer Career Platform",
+    description: "Master coding, ace interviews, build your portfolio and land your dream role with DevArise AI.",
+    type: "website",
+  },
+  themeColor: "#7c3aed",
+  viewport: "width=device-width, initial-scale=1",
+};
+
 export default function RootLayout({ children }) {
   return (
     <html lang="en" suppressHydrationWarning className="scroll-smooth">
       <head>
-        <title>DevArise AI — Master Coding. Ace Interviews. Land Your Dream Role.</title>
-        <meta
-          name="description"
-          content="DevArise AI is the ultimate AI-powered platform for coding practice, mock interviews, personalized roadmaps, and career growth for developers."
-        />
-        <meta name="keywords" content="coding practice, AI interview, placement roadmap, DSA, full stack developer, tech career" />
-        <meta name="author" content="DevArise AI" />
-        <meta name="viewport" content="width=device-width, initial-scale=1" />
-        <meta property="og:title" content="DevArise AI — AI-Powered Developer Career Platform" />
-        <meta property="og:description" content="Master coding, ace interviews, build your portfolio and land your dream role with DevArise AI." />
-        <meta property="og:type" content="website" />
-        <meta name="theme-color" content="#7c3aed" />
         <link rel="preconnect" href="https://fonts.googleapis.com" />
         <link rel="preconnect" href="https://fonts.gstatic.com" crossOrigin="anonymous" />
         <link

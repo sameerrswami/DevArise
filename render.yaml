@@ -1,33 +1,42 @@
 services:
   - type: web
-    name: neurolearn-web
+    name: devarise-web
     env: node
     plan: starter
-    repo: "<GITHUB_REPOSITORY_URL>" # e.g. https://github.com/<username>/<repo>
+    repo: "https://github.com/sameerrswami/DevArise"
     branch: main
-    buildCommand: npm install && npm run build
+    buildCommand: npm install && npx prisma generate && npm run build
     startCommand: npm run start
     envVars:
-      - key: DATABASE_URL
-        value: ""
-      - key: NEXTAUTH_URL
-        value: ""
-      - key: NEXTAUTH_SECRET
-        value: ""
-      - key: GEMINI_API_KEY
-        value: ""
-      - key: YOUTUBE_API_KEYS
-        value: ""
-      - key: RAZORPAY_KEY_ID
-        value: ""
-      - key: RAZORPAY_KEY_SECRET
-        value: ""
-      - key: RAZORPAY_WEBHOOK_SECRET
-        value: ""
-      - key: NEXT_PUBLIC_APP_URL
-        value: ""
       - key: NODE_ENV
         value: production
-    disk: 1024
-    instances: 1
+      - key: DATABASE_URL
+        sync: false
+      - key: NEXTAUTH_URL
+        sync: false
+      - key: NEXTAUTH_SECRET
+        sync: false
+      - key: GOOGLE_CLIENT_ID
+        sync: false
+      - key: GOOGLE_CLIENT_SECRET
+        sync: false
+      - key: GEMINI_API_KEY
+        sync: false
+      - key: YOUTUBE_API_KEYS
+        sync: false
+      - key: RAZORPAY_KEY_ID
+        sync: false
+      - key: RAZORPAY_KEY_SECRET
+        sync: false
+      - key: RAZORPAY_WEBHOOK_SECRET
+        sync: false
+      - key: NEXT_PUBLIC_APP_URL
+        sync: false
+      - key: NEXT_PUBLIC_INTERVIEW_QUESTION_COUNT
+        value: "10"
+      - key: NEXT_PUBLIC_INFORMATION
+        value: "Interview instructions shown on the dashboard interview page"
+      - key: NEXT_PUBLIC_QUESTION_NOTE
+        value: "Question note shown in the interview start screen"
     healthCheckPath: /api/health
+    autoDeploy: true

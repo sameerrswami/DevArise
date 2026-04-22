@@ -3,9 +3,9 @@ const nextConfig = {
     ignoreDuringBuilds: true,
   },
   images: { unoptimized: true },
-  // Exclude packages that use native Node.js modules from the server bundle
   experimental: {
-    serverComponentsExternalPackages: ["pdf-parse", "sharp"],
+    // Exclude packages with native Node.js bindings from the server bundle
+    serverComponentsExternalPackages: ["pdf-parse", "sharp", "@prisma/client", "prisma"],
   },
   webpack: (config, { isServer }) => {
     if (!isServer) {
@@ -13,6 +13,9 @@ const nextConfig = {
       config.resolve.fallback = Object.assign({}, config.resolve.fallback || {}, {
         bufferutil: false,
         "utf-8-validate": false,
+        fs: false,
+        net: false,
+        tls: false,
       });
     }
     return config;
