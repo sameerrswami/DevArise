@@ -5,6 +5,8 @@ import prisma from "@/lib/prisma";
 
 import { logger } from "@/lib/logger";
 
+export const dynamic = "force-dynamic";
+
 export async function GET(req) {
   try {
     let jobs = await prisma.jobPost.findMany({

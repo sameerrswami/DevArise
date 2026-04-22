@@ -3,6 +3,8 @@ import { getServerSession } from 'next-auth/next';
 import { authOptions } from '@/lib/auth';
 import prisma from '@/lib/prisma';
 
+export const dynamic = "force-dynamic";
+
 // GET /api/personalization/profile - Get user's personalization profile
 export async function GET(request) {
   try {
@@ -17,26 +19,15 @@ export async function GET(request) {
         profile: {
           include: {
             goals: true,
-            recommendations: {
-              where: { status: 'pending' },
-              orderBy: { priority: 'desc' },
-              take: 10
-            },
-            insights: {
-              where: { isRead: false },
-              orderBy: { createdAt: 'desc' },
-              take: 5
-            }
-          }
-        }
-      }
+            recommendations: { where: { status: 'pending' }, orderBy: { priority: 'desc' }, take: 10 },
+            insights: { where: { isRead: false }, orderBy: { createdAt: 'desc' }, take: 5 },
+          },
+        },
+      },
     });
 
-    if (!user) {
-      return NextResponse.json({ error: 'User not found' }, { status: 404 });
-    }
+    if (!user) return NextResponse.json({ error: 'User not found' }, { status: 404 });
 
-    // If no profile exists, create a default one
     if (!user.profile) {
       const defaultProfile = await prisma.userProfile.create({
         data: {
@@ -45,13 +36,9 @@ export async function GET(request) {
           strengths: [],
           weaknesses: [],
           preferredLanguages: ['javascript'],
-          targetRoles: []
+          targetRoles: [],
         },
-        include: {
-          goals: true,
-          recommendations: true,
-          insights: true
-        }
+        include: { goals: true, recommendations: true, insights: true },
       });
 
       return NextResponse.json({
@@ -61,8 +48,8 @@ export async function GET(request) {
           name: user.name,
           email: user.email,
           preparationLevel: user.preparationLevel,
-          contestRating: user.contestRating
-        }
+          contestRating: user.contestRating,
+        },
       });
     }
 
@@ -73,10 +60,9 @@ export async function GET(request) {
         name: user.name,
         email: user.email,
         preparationLevel: user.preparationLevel,
-        contestRating: user.contestRating
-      }
+        contestRating: user.contestRating,
+      },
     });
-
   } catch (error) {
     console.error('Error fetching user profile:', error);
     return NextResponse.json({ error: 'Internal server error' }, { status: 500 });
@@ -84,7 +70,7 @@ export async function GET(request) {
 }
 
 // PUT /api/personalization/profile - Update user's personalization profile
-export async function PUT(request: NextRequest) {
+export async function PUT(request) {
   try {
     const session = await getServerSession(authOptions);
     if (!session?.user?.email) {
@@ -92,33 +78,14 @@ export async function PUT(request: NextRequest) {
     }
 
     const body = await request.json();
-    const {
-      learningStyle,
-      preferredDifficulty,
-      preferredLanguages,
-      targetRoles,
-      sessionDuration,
-      learningPace
-    } = body;
+    const { learningStyle, preferredDifficulty, preferredLanguages, targetRoles, sessionDuration, learningPace } = body;
 
-    const user = await prisma.user.findUnique({
-      where: { email: session.user.email }
-    });
-
-    if (!user) {
-      return NextResponse.json({ error: 'User not found' }, { status: 404 });
-    }
+    const user = await prisma.user.findUnique({ where: { email: session.user.email } });
+    if (!user) return NextResponse.json({ error: 'User not found' }, { status: 404 });
 
     const updatedProfile = await prisma.userProfile.upsert({
       where: { userId: user.id },
-      update: {
-        learningStyle,
-        preferredDifficulty,
-        preferredLanguages,
-        targetRoles,
-        sessionDuration,
-        learningPace
-      },
+      update: { learningStyle, preferredDifficulty, preferredLanguages, targetRoles, sessionDuration, learningPace },
       create: {
         userId: user.id,
         learningStyle,
@@ -127,12 +94,11 @@ export async function PUT(request: NextRequest) {
         targetRoles: targetRoles || [],
         sessionDuration,
         learningPace,
-        problemCategories: {}
-      }
+        problemCategories: {},
+      },
     });
 
     return NextResponse.json({ profile: updatedProfile });
-
   } catch (error) {
     console.error('Error updating user profile:', error);
     return NextResponse.json({ error: 'Internal server error' }, { status: 500 });

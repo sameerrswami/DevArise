@@ -3,14 +3,15 @@ import { getServerSession } from "next-auth/next";
 import { authOptions } from "@/lib/auth";
 import prisma from "@/lib/prisma";
 
+export const dynamic = "force-dynamic";
+
 async function requireAdmin(session) {
   if (!session?.user) return { error: "Unauthorized", status: 401 };
   const user = await prisma.user.findUnique({ where: { id: session.user.id }, select: { role: true } });
-  if (user?.role !== "admin") return { error: "Forbidden", status: 403 };
+  if (user?.role !== "admin" && user?.role !== "ADMIN") return { error: "Forbidden", status: 403 };
   return null;
 }
 
-/* ─── GET /api/admin/content/problems ─── */
 export async function GET(req) {
   try {
     const session = await getServerSession(authOptions);
@@ -18,43 +19,29 @@ export async function GET(req) {
     if (deny) return NextResponse.json({ error: deny.error }, { status: deny.status });
 
     const { searchParams } = new URL(req.url);
-    const page       = Math.max(1, parseInt(searchParams.get("page") || "1"));
-    const limit      = parseInt(searchParams.get("limit") || "20");
-    const search     = searchParams.get("q") || "";
+    const page = Math.max(1, parseInt(searchParams.get("page") || "1"));
+    const limit = parseInt(searchParams.get("limit") || "20");
+    const search = searchParams.get("q") || "";
     const difficulty = searchParams.get("difficulty") || "";
-    const category   = searchParams.get("category") || "";
-    const skip       = (page - 1) * limit;
+    const category = searchParams.get("category") || "";
+    const skip = (page - 1) * limit;
 
     const where = {
-      ...(search ? {
-        OR: [
-          { title:    { contains: search, mode: "insensitive" } },
-          { category: { contains: search, mode: "insensitive" } },
-        ],
-      } : {}),
+      ...(search ? { OR: [{ title: { contains: search, mode: "insensitive" } }, { category: { contains: search, mode: "insensitive" } }] } : {}),
       ...(difficulty ? { difficulty } : {}),
-      ...(category   ? { category }   : {}),
+      ...(category ? { category } : {}),
     };
 
     const [problems, total] = await Promise.all([
       prisma.problem.findMany({
-        where,
-        skip,
-        take: limit,
-        orderBy: { createdAt: "desc" },
-        select: {
-          id: true, title: true, difficulty: true, category: true,
-          slug: true, createdAt: true,
-          _count: { select: { submissions: true } },
-        },
+        where, skip, take: limit, orderBy: { createdAt: "desc" },
+        select: { id: true, title: true, difficulty: true, category: true, slug: true, createdAt: true, _count: { select: { submissions: true } } },
       }),
       prisma.problem.count({ where }),
     ]);
 
-    const mapped = problems.map((p) => ({ ...p, submissions: p._count.submissions }));
-
     return NextResponse.json({
-      problems: mapped,
+      problems: problems.map((p) => ({ ...p, submissions: p._count.submissions })),
       pagination: { page, limit, total, pages: Math.ceil(total / limit) },
     });
   } catch (err) {
@@ -63,7 +50,6 @@ export async function GET(req) {
   }
 }
 
-/* ─── POST /api/admin/content/problems ─── */
 export async function POST(req) {
   try {
     const session = await getServerSession(authOptions);
@@ -71,24 +57,16 @@ export async function POST(req) {
     if (deny) return NextResponse.json({ error: deny.error }, { status: deny.status });
 
     const body = await req.json();
-    const { title, description, difficulty, category, tags = [] } = body;
+    const { title, description, difficulty, category } = body;
 
     if (!title || !description || !difficulty || !category) {
       return NextResponse.json({ error: "Missing required fields" }, { status: 400 });
     }
 
-    // Generate slug from title
-    const slug = title
-      .toLowerCase()
-      .replace(/[^a-z0-9\s-]/g, "")
-      .trim()
-      .replace(/\s+/g, "-") + "-" + Date.now();
+    const slug = title.toLowerCase().replace(/[^a-z0-9\s-]/g, "").trim().replace(/\s+/g, "-") + "-" + Date.now();
 
     const problem = await prisma.problem.create({
-      data: {
-        title, description, difficulty, category, slug,
-        testCases: [],
-      },
+      data: { title, description, difficulty, category, slug, testCases: [] },
     });
 
     return NextResponse.json({ problem }, { status: 201 });

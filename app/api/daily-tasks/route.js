@@ -3,6 +3,8 @@ import { getServerSession } from 'next-auth';
 import { authOptions } from '@/lib/auth';
 import { DailyPracticeService, ActivityTrackingService } from '@/lib/services/revision';
 
+export const dynamic = "force-dynamic";
+
 export async function GET(request) {
   try {
     const session = await getServerSession(authOptions);

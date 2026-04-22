@@ -1,6 +1,8 @@
 import { NextResponse } from "next/server";
 import { GeminiService } from "@/lib/services/gemini";
 
+export const dynamic = "force-dynamic";
+
 export async function POST(req) {
   try {
     const { topic, message, history } = await req.json();

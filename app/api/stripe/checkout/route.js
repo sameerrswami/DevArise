@@ -4,6 +4,8 @@ import { authOptions } from "@/lib/auth";
 import { razorpay } from "@/lib/razorpay";
 import { logger } from "@/lib/logger";
 
+export const dynamic = "force-dynamic";
+
 export async function POST(req) {
   try {
     const session = await getServerSession(authOptions);

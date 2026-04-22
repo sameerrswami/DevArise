@@ -4,14 +4,21 @@ import crypto from "crypto";
 import prisma from "@/lib/prisma";
 import { logger } from "@/lib/logger";
 
+export const dynamic = "force-dynamic";
+
 export async function POST(req) {
   try {
     const body = await req.text();
     const signature = headers().get("x-razorpay-signature");
 
-    // Verify Razorpay webhook signature
+    const webhookSecret = process.env.RAZORPAY_WEBHOOK_SECRET;
+    if (!webhookSecret) {
+      logger.error("RAZORPAY_WEBHOOK_SECRET is not configured");
+      return NextResponse.json({ message: "Webhook secret not configured" }, { status: 500 });
+    }
+
     const hash = crypto
-      .createHmac("sha256", process.env.RAZORPAY_WEBHOOK_SECRET)
+      .createHmac("sha256", webhookSecret)
       .update(body)
       .digest("hex");
 
@@ -28,85 +35,77 @@ export async function POST(req) {
 
     switch (eventType) {
       case "payment.authorized":
-      case "payment.captured":
-        // Payment successful
+      case "payment.captured": {
         const payment = eventData.payment.entity;
-        const orderId = payment.order_id;
+        const notes = payment.notes || {};
+        const userId = notes.userId;
+        const planId = notes.planId;
+        const billingCycle = notes.billingCycle;
 
-        // Get order details to fetch userId
-        const order = await prisma.$queryRaw`
-          SELECT notes FROM stripe_orders WHERE razorpay_order_id = ${orderId}
-        `;
-
-        if (order && payment.notes) {
-          const userId = payment.notes.userId;
-          const planId = payment.notes.planId;
-          const billingCycle = payment.notes.billingCycle;
-
-          if (userId) {
-            await prisma.user.update({
-              where: { id: userId },
-              data: {
-                isPremium: true,
-                planType: billingCycle || "one-time",
-                razorpayCustomerId: payment.customer_id,
-                razorpayPaymentId: payment.id,
-              }
-            });
-
-            // Record Transaction
-            await prisma.transaction.create({
-              data: {
-                userId: userId,
-                amount: payment.amount / 100, // Convert from paise to rupees
-                currency: payment.currency,
-                status: "succeeded",
-                paymentIntentId: payment.id,
-                planType: planId
-              }
-            });
-
-            logger.info(`Payment captured for user: ${userId}, amount: ${payment.amount}`);
-          }
-        }
-        break;
-
-      case "payment.failed":
-        // Payment failed
-        const failedPayment = eventData.payment.entity;
-        logger.error(`Payment failed: ${failedPayment.id}`, { error: failedPayment.error_description });
-        break;
-
-      case "subscription.activated":
-        // Subscription started
-        const subscription = eventData.subscription.entity;
-        if (subscription.notes && subscription.notes.userId) {
+        if (userId) {
           await prisma.user.update({
-            where: { id: subscription.notes.userId },
+            where: { id: userId },
             data: {
               isPremium: true,
-              razorpaySubscriptionId: subscription.id,
-            }
+              planType: billingCycle || "one-time",
+            },
+          });
+
+          await prisma.transaction.create({
+            data: {
+              userId,
+              amount: payment.amount / 100,
+              currency: payment.currency,
+              status: "succeeded",
+              paymentIntentId: payment.id,
+              planType: planId || billingCycle || "premium",
+            },
+          });
+
+          logger.info(`Payment captured for user: ${userId}, amount: ${payment.amount}`);
+        }
+        break;
+      }
+
+      case "payment.failed": {
+        const failedPayment = eventData.payment.entity;
+        logger.error(`Payment failed: ${failedPayment.id}`, {
+          error: failedPayment.error_description,
+        });
+        break;
+      }
+
+      case "subscription.activated": {
+        const subscription = eventData.subscription.entity;
+        const userId = subscription.notes?.userId;
+        if (userId) {
+          await prisma.user.update({
+            where: { id: userId },
+            data: {
+              isPremium: true,
+              subscriptionId: subscription.id,
+            },
           });
         }
         break;
+      }
 
-      case "subscription.cancelled":
-        // Subscription cancelled
-        const cancelledSubscription = eventData.subscription.entity;
-        if (cancelledSubscription.notes && cancelledSubscription.notes.userId) {
+      case "subscription.cancelled": {
+        const cancelledSub = eventData.subscription.entity;
+        const userId = cancelledSub.notes?.userId;
+        if (userId) {
           await prisma.user.update({
-            where: { id: cancelledSubscription.notes.userId },
+            where: { id: userId },
             data: {
               isPremium: false,
-              razorpaySubscriptionId: null,
-            }
+              subscriptionId: null,
+            },
           });
         }
         break;
+      }
 
       case "subscription.paused":
-        // Subscription paused
         logger.info(`Subscription paused: ${eventData.subscription.entity.id}`);
         break;
 

@@ -1,6 +1,8 @@
 import { NextResponse } from "next/server";
 import prisma from "@/lib/prisma";
 
+export const dynamic = "force-dynamic";
+
 // GET /api/contests/leaderboard - Get real-time leaderboard for a contest
 export async function GET(req) {
   try {

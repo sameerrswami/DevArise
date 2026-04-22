@@ -3,9 +3,10 @@ const nextConfig = {
     ignoreDuringBuilds: true,
   },
   images: { unoptimized: true },
-  // Workaround for native optional "ws" dependencies used by some libraries
-  // (e.g. ethers -> ws -> bufferutil). Prevent webpack from trying to bundle
-  // native optional dependencies into the client build which can fail on Vercel/Windows.
+  // Exclude packages that use native Node.js modules from the server bundle
+  experimental: {
+    serverComponentsExternalPackages: ["pdf-parse", "sharp"],
+  },
   webpack: (config, { isServer }) => {
     if (!isServer) {
       config.resolve = config.resolve || {};

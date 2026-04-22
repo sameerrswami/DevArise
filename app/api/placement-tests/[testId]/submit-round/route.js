@@ -9,6 +9,8 @@ import { getServerSession } from "next-auth/next";
 import { prisma } from "@/lib/prisma";
 import { PlacementTestOrchestrator } from "@/lib/placement-test-orchestrator";
 
+export const dynamic = "force-dynamic";
+
 export async function POST(request, { params }) {
   try {
     const session = await getServerSession();

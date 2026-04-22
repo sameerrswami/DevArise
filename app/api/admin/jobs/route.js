@@ -3,6 +3,8 @@ import { getServerSession } from "next-auth/next";
 import { authOptions } from "@/lib/auth";
 import prisma from "@/lib/prisma";
 
+export const dynamic = 'force-dynamic';
+
 async function requireAdmin(session) {
   if (!session?.user) return { error: "Unauthorized", status: 401 };
   const user = await prisma.user.findUnique({ where: { id: session.user.id }, select: { role: true } });
@@ -82,3 +84,4 @@ export async function POST(req) {
     return NextResponse.json({ error: "Internal server error" }, { status: 500 });
   }
 }
+

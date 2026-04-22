@@ -6,6 +6,8 @@ import { getServerSession } from 'next-auth/next';
 import evaluationAnalyzer from '@/lib/evaluation-analyzer';
 import performanceReporter from '@/lib/performance-reporter';
 
+export const dynamic = "force-dynamic";
+
 export async function POST(request) {
   try {
     const session = await getServerSession();

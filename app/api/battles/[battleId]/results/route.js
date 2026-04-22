@@ -7,6 +7,8 @@
 import { prisma } from "@/lib/prisma";
 import { NextResponse } from "next/server";
 
+export const dynamic = "force-dynamic";
+
 /**
  * GET /api/battles/[battleId]/results
  * Get final results with detailed analysis

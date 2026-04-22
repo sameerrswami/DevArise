@@ -3,7 +3,8 @@ import { GeminiService } from "@/lib/services/gemini";
 import { getServerSession } from "next-auth/next";
 import { authOptions } from "@/lib/auth";
 import prisma from "@/lib/prisma";
-import pdf from "pdf-parse";
+
+export const dynamic = "force-dynamic";
 
 export async function POST(req) {
   try {
@@ -15,20 +16,20 @@ export async function POST(req) {
     }
 
     const buffer = Buffer.from(await file.arrayBuffer());
-    const data = await pdf(buffer);
+
+    // Dynamic import to prevent build-time evaluation of pdf-parse
+    const pdfParse = (await import("pdf-parse")).default;
+    const data = await pdfParse(buffer);
     const resumeText = data.text;
 
     const gemini = new GeminiService();
     const analysis = await gemini.analyzeResume(resumeText);
 
-    // Save to User Profile if authenticated
     const session = await getServerSession(authOptions);
     if (session?.user?.email) {
       await prisma.user.update({
         where: { email: session.user.email },
-        data: {
-          resumeData: analysis
-        }
+        data: { resumeData: analysis },
       });
     }
 

@@ -4,6 +4,8 @@ import { authOptions } from "@/lib/auth";
 import prisma from "@/lib/prisma";
 import crypto from "crypto";
 
+export const dynamic = "force-dynamic";
+
 // Normalize code for plagiarism detection (remove comments, whitespace, etc.)
 function normalizeCode(code) {
   return code

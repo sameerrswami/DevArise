@@ -4,6 +4,8 @@ import { razorpay } from "@/lib/razorpay";
 import crypto from "crypto";
 import { logger } from "@/lib/logger";
 
+export const dynamic = "force-dynamic";
+
 export async function POST(req) {
   try {
     const { orderId, paymentId, signature, userId, planId, billingCycle } = await req.json();
@@ -12,9 +14,14 @@ export async function POST(req) {
       return NextResponse.json({ message: "Missing parameters" }, { status: 400 });
     }
 
-    // Verify signature: hmac_sha256(orderId|paymentId, key_secret)
+    const keySecret = process.env.RAZORPAY_KEY_SECRET;
+    if (!keySecret) {
+      logger.error("RAZORPAY_KEY_SECRET is not configured");
+      return NextResponse.json({ message: "Payment configuration error" }, { status: 500 });
+    }
+
     const expected = crypto
-      .createHmac("sha256", process.env.RAZORPAY_KEY_SECRET)
+      .createHmac("sha256", keySecret)
       .update(`${orderId}|${paymentId}`)
       .digest("hex");
 
@@ -23,32 +30,25 @@ export async function POST(req) {
       return NextResponse.json({ message: "Invalid signature" }, { status: 400 });
     }
 
-    // Fetch payment details from Razorpay to confirm
     const payment = await razorpay.payments.fetch(paymentId);
 
     if (!payment || payment.status !== "captured") {
-      // Could be authorized -> captured later; handle accordingly
-      if (payment.status !== "captured") {
-        logger.warn("Razorpay payment not captured yet", { paymentId, status: payment.status });
-        return NextResponse.json({ message: "Payment not captured" }, { status: 400 });
-      }
+      logger.warn("Razorpay payment not captured yet", { paymentId, status: payment?.status });
+      return NextResponse.json({ message: "Payment not captured" }, { status: 400 });
     }
 
-    // Update user and record transaction
     if (userId) {
       await prisma.user.update({
         where: { id: userId },
         data: {
           isPremium: true,
           planType: billingCycle || "one-time",
-          razorpayPaymentId: paymentId,
-          razorpayOrderId: orderId,
         },
       });
 
       await prisma.transaction.create({
         data: {
-          userId: userId,
+          userId,
           amount: payment.amount / 100,
           currency: payment.currency,
           status: "succeeded",

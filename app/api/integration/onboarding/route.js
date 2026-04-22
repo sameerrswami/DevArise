@@ -6,6 +6,8 @@ import { getServerSession } from 'next-auth';
 import prisma from '@/lib/prisma';
 import IntegrationOrchestrator from '@/lib/integration-orchestrator';
 
+export const dynamic = "force-dynamic";
+
 export async function POST(request) {
   try {
     const session = await getServerSession();

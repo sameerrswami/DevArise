@@ -3,6 +3,8 @@ import { getServerSession } from "next-auth/next";
 import { authOptions } from "@/lib/auth";
 import prisma from "@/lib/prisma";
 
+export const dynamic = 'force-dynamic';
+
 /* ─── helper: verify admin ─── */
 async function requireAdmin(session) {
   if (!session?.user) return { error: "Unauthorized", status: 401 };
@@ -78,3 +80,4 @@ export async function GET(req) {
     return NextResponse.json({ error: "Internal server error" }, { status: 500 });
   }
 }
+

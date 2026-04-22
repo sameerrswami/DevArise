@@ -4,6 +4,8 @@ import { authOptions } from "@/lib/auth";
 import { GeminiService } from "@/lib/services/gemini";
 import prisma from "@/lib/prisma";
 
+export const dynamic = "force-dynamic";
+
 export async function POST(req) {
   try {
     const session = await getServerSession(authOptions);

@@ -8,6 +8,8 @@ import { prisma } from "@/lib/prisma";
 import { BattleOrchestrator } from "@/lib/battle-orchestrator";
 import { NextResponse } from "next/server";
 
+export const dynamic = "force-dynamic";
+
 const orchestrator = new BattleOrchestrator();
 
 /**

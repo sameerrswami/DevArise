@@ -23,7 +23,8 @@ import {
   Zap,
   History,
   Medal,
-  ArrowRight
+  ArrowRight,
+  CheckCircle
 } from "lucide-react";
 import { motion } from "framer-motion";
 import { useRouter } from "next/navigation";

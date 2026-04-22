@@ -5,6 +5,8 @@ const prisma = new PrismaClient();
 
 import { logger } from "@/lib/logger";
 
+export const dynamic = "force-dynamic";
+
 export async function GET() {
   try {
     let problems = await prisma.problem.findMany({

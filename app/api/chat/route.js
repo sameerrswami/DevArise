@@ -3,6 +3,8 @@ import { getServerSession } from "next-auth/next";
 import { authOptions } from "@/lib/auth";
 import { GeminiService } from "@/lib/services/gemini";
 
+export const dynamic = "force-dynamic";
+
 export async function POST(req) {
   try {
     const session = await getServerSession(authOptions);
