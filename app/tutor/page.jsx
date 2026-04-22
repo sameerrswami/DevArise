@@ -25,6 +25,8 @@ import {
 import ReactMarkdown from "react-markdown";
 import { motion, AnimatePresence } from "framer-motion";
 
+export const dynamic = "force-dynamic";
+
 export default function AITutor() {
   const { data: session } = useSession();
   const [topic, setTopic] = useState("");
@@ -43,9 +45,11 @@ export default function AITutor() {
   }, [chat, explanation, isLoading]);
 
   useEffect(() => {
-    // Load tutor history from local storage
-    const saved = localStorage.getItem("devarise_tutor_history");
-    if (saved) setHistory(JSON.parse(saved));
+    if (typeof window !== 'undefined') {
+      // Load tutor history from local storage
+      const saved = localStorage.getItem("devarise_tutor_history");
+      if (saved) setHistory(JSON.parse(saved));
+    }
   }, []);
 
   const handleStartTutor = async (selectedTopic) => {
@@ -75,7 +79,9 @@ export default function AITutor() {
           ...history.filter(h => h.topic !== targetTopic)
         ].slice(0, 5);
         setHistory(newHistory);
-        localStorage.setItem("devarise_tutor_history", JSON.stringify(newHistory));
+        if (typeof window !== 'undefined') {
+          localStorage.setItem("devarise_tutor_history", JSON.stringify(newHistory));
+        }
 
       } else {
         setExplanation("I'm sorry, I couldn't process that topic. Please try another one.");

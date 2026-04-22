@@ -85,13 +85,13 @@ export default function CodeEditor({
    * Load code from localStorage
    */
   useEffect(() => {
-    if (!problem?.id) return;
-
-    const savedCode = localStorage.getItem(`battle-code-${problem.id}-${language}`);
-    if (savedCode) {
-      setCode(savedCode);
-    } else {
-      setCode(LANGUAGE_TEMPLATES[language] || LANGUAGE_TEMPLATES.javascript);
+    if (typeof window !== 'undefined' && problem?.id) {
+      const savedCode = localStorage.getItem(`battle-code-${problem.id}-${language}`);
+      if (savedCode) {
+        setCode(savedCode);
+      } else {
+        setCode(LANGUAGE_TEMPLATES[language] || LANGUAGE_TEMPLATES.javascript);
+      }
     }
   }, [problem?.id, language]);
 

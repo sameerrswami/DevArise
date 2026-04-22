@@ -11,6 +11,8 @@ import { Card } from "@/components/ui/card";
 import { Navbar } from "@/components/navbar";
 import { motion, AnimatePresence } from "framer-motion";
 
+export const dynamic = "force-dynamic";
+
 export default function HomePage() {
   const [playlist, setPlaylist] = useState(null);
   const [isLoading, setIsLoading] = useState(false);
@@ -72,7 +74,7 @@ export default function HomePage() {
   };
 
   const handleVideoPlay = (videoId) => {
-    if (playlist) {
+    if (typeof window !== 'undefined' && playlist) {
       localStorage.setItem("neuro_playlist", JSON.stringify(playlist));
     }
     router.push(`/watch?v=${videoId}`);

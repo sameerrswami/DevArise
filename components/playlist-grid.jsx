@@ -93,9 +93,11 @@ export function PlaylistGrid({ playlist, onVideoPlay, onBookmarkPlaylist }) {
               isBookmarked: false, // This would come from user bookmarks
             }}
             onPlay={() => {
-              // Store playlist in localStorage and use parent handler
-              const playlistToStore = isObject ? playlist : { title, videos: videosArray, totalVideos };
-              localStorage.setItem("neuro_playlist", JSON.stringify(playlistToStore));
+              if (typeof window !== 'undefined') {
+                // Store playlist in localStorage and use parent handler
+                const playlistToStore = isObject ? playlist : { title, videos: videosArray, totalVideos };
+                localStorage.setItem("neuro_playlist", JSON.stringify(playlistToStore));
+              }
               onVideoPlay(video.id);
             }}
             onBookmark={(videoId) => {

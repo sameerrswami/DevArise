@@ -26,43 +26,45 @@ function WatchPageContent() {
   const [playlist, setPlaylist] = useState(null);
 
   useEffect(() => {
-    // Load playlist from localStorage
-    let loadedPlaylist = null;
-    try {
-      const stored = localStorage.getItem("neuro_playlist");
-      if (stored) {
-        loadedPlaylist = JSON.parse(stored);
-        if (process.env.NODE_ENV === 'development') console.log("[DEBUG] Loaded playlist from localStorage:", loadedPlaylist);
-        setPlaylist(loadedPlaylist);
-      } else {
-        if (process.env.NODE_ENV === 'development') console.warn("[DEBUG] No playlist found in localStorage");
-      }
-    } catch (error) {
-      console.error(
-        "[DEBUG] Failed to load playlist from localStorage:",
-        error,
-      );
-    }
-
-    // Set videoData from playlist if available
-    if (videoId && loadedPlaylist && loadedPlaylist.videos) {
-      const video = loadedPlaylist.videos.find((v) => v.id === videoId);
-      if (process.env.NODE_ENV === 'development') console.log("[DEBUG] Looking for videoId", videoId, "in playlist.videos:", loadedPlaylist.videos);
-      if (video) {
-        if (process.env.NODE_ENV === 'development') console.log("[DEBUG] Found video for videoId", videoId, ":", video);
-        setVideoData({
-          title: video.title,
-          description: video.description,
-          channelTitle: video.channelTitle || "",
-          difficulty: video.difficulty || "beginner",
-        });
-        return;
-      } else {
-        console.warn(
-          "[DEBUG] No video found for videoId",
-          videoId,
-          "in playlist",
+    if (typeof window !== 'undefined') {
+      // Load playlist from localStorage
+      let loadedPlaylist = null;
+      try {
+        const stored = localStorage.getItem("neuro_playlist");
+        if (stored) {
+          loadedPlaylist = JSON.parse(stored);
+          if (process.env.NODE_ENV === 'development') console.log("[DEBUG] Loaded playlist from localStorage:", loadedPlaylist);
+          setPlaylist(loadedPlaylist);
+        } else {
+          if (process.env.NODE_ENV === 'development') console.warn("[DEBUG] No playlist found in localStorage");
+        }
+      } catch (error) {
+        console.error(
+          "[DEBUG] Failed to load playlist from localStorage:",
+          error,
         );
+      }
+
+      // Set videoData from playlist if available
+      if (videoId && loadedPlaylist && loadedPlaylist.videos) {
+        const video = loadedPlaylist.videos.find((v) => v.id === videoId);
+        if (process.env.NODE_ENV === 'development') console.log("[DEBUG] Looking for videoId", videoId, "in playlist.videos:", loadedPlaylist.videos);
+        if (video) {
+          if (process.env.NODE_ENV === 'development') console.log("[DEBUG] Found video for videoId", videoId, ":", video);
+          setVideoData({
+            title: video.title,
+            description: video.description,
+            channelTitle: video.channelTitle || "",
+            difficulty: video.difficulty || "beginner",
+          });
+          return;
+        } else {
+          console.warn(
+            "[DEBUG] No video found for videoId",
+            videoId,
+            "in playlist",
+          );
+        }
       }
     }
     // fallback placeholder
@@ -160,6 +162,8 @@ function WatchPageContent() {
     </div>
   );
 }
+
+export const dynamic = "force-dynamic";
 
 export default function WatchPage() {
   return (

@@ -88,10 +88,12 @@ export function Navbar({ showBackButton = false, showAuthButtons = true, isAuthe
   const [scrolled, setScrolled] = useState(false);
 
   useEffect(() => {
-    setMounted(true);
-    const handleScroll = () => setScrolled(window.scrollY > 10);
-    window.addEventListener("scroll", handleScroll);
-    return () => window.removeEventListener("scroll", handleScroll);
+    if (typeof window !== 'undefined') {
+      setMounted(true);
+      const handleScroll = () => setScrolled(window.scrollY > 10);
+      window.addEventListener("scroll", handleScroll);
+      return () => window.removeEventListener("scroll", handleScroll);
+    }
   }, []);
 
   useEffect(() => {
