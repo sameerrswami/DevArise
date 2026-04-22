@@ -178,6 +178,7 @@ model User {
   subscriptionId   String?       @unique
   currentPeriodEnd DateTime?
   transactions     Transaction[]
+  passwordResets   PasswordReset[] @relation("PasswordReset")
 
   // Coding battle relations
   participatedBattles BattleParticipant[]
@@ -254,6 +255,19 @@ model VerificationToken {
   expires    DateTime
 
   @@unique([identifier, token])
+}
+
+model PasswordReset {
+  id        String   @id @default(cuid())
+  email     String
+  userId    String
+  tokenHash String   @unique
+  expiresAt DateTime
+  user      User     @relation("PasswordReset", fields: [userId], references: [id], onDelete: Cascade)
+  createdAt DateTime @default(now())
+
+  @@index([email])
+  @@index([userId])
 }
 
 model Video {

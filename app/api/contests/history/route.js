@@ -203,8 +203,8 @@ function calculateTrends(contestHistory) {
   };
 }
 
-// GET /api/contests/history/stats - Get detailed statistics
-export async function GET_STATS(req) {
+// Helper function to get detailed statistics
+async function getStats(req) {
   try {
     const session = await getServerSession(authOptions);
     if (!session?.user?.email) {

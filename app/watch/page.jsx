@@ -32,13 +32,10 @@ function WatchPageContent() {
       const stored = localStorage.getItem("neuro_playlist");
       if (stored) {
         loadedPlaylist = JSON.parse(stored);
-        console.log(
-          "[DEBUG] Loaded playlist from localStorage:",
-          loadedPlaylist,
-        );
+        if (process.env.NODE_ENV === 'development') console.log("[DEBUG] Loaded playlist from localStorage:", loadedPlaylist);
         setPlaylist(loadedPlaylist);
       } else {
-        console.warn("[DEBUG] No playlist found in localStorage");
+        if (process.env.NODE_ENV === 'development') console.warn("[DEBUG] No playlist found in localStorage");
       }
     } catch (error) {
       console.error(
@@ -50,14 +47,9 @@ function WatchPageContent() {
     // Set videoData from playlist if available
     if (videoId && loadedPlaylist && loadedPlaylist.videos) {
       const video = loadedPlaylist.videos.find((v) => v.id === videoId);
-      console.log(
-        "[DEBUG] Looking for videoId",
-        videoId,
-        "in playlist.videos:",
-        loadedPlaylist.videos,
-      );
+      if (process.env.NODE_ENV === 'development') console.log("[DEBUG] Looking for videoId", videoId, "in playlist.videos:", loadedPlaylist.videos);
       if (video) {
-        console.log("[DEBUG] Found video for videoId", videoId, ":", video);
+        if (process.env.NODE_ENV === 'development') console.log("[DEBUG] Found video for videoId", videoId, ":", video);
         setVideoData({
           title: video.title,
           description: video.description,

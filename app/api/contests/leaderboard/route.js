@@ -112,8 +112,8 @@ export async function GET(req) {
   }
 }
 
-// GET /api/contests/leaderboard/rank - Get user's current rank
-export async function GET_RANK(req) {
+// Helper function to get user's current rank
+async function getRank(req) {
   try {
     const { searchParams } = new URL(req.url);
     const contestId = searchParams.get("contestId");

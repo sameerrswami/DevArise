@@ -85,10 +85,8 @@ export async function PATCH(request) {
 
 // ---
 
-// app/api/evaluation/recommendations/route.js
-// Get personalized recommendations
-
-export async function GET_RECOMMENDATIONS(request) {
+// Helper function to get personalized recommendations
+async function getRecommendations(request) {
   try {
     const session = await getServerSession();
     if (!session) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
